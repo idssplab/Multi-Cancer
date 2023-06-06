@@ -1,0 +1,94 @@
+name: Trainer_Test
+n_gpu: 1
+pin_memory: false
+
+log_directory: Logs/
+checkpoint_directory: Checkpoints/
+
+models:
+  Feature_Extractor:
+    type: Feature_Extractor
+    args: 
+      genomic_dim: 20
+      clinical_numerical_dim: 3
+      clinical_categorical_dim: 11
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+  Label_Classifier:
+    type: Classifier
+    args: 
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+      output_dim: 1
+
+datasets:
+  TCGA-BRCA:
+  #TCGA-LUAD:
+  #TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        gene_ids: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'PINK1', 'RPS9', 'RPL36', 'RPL18', 'RPL28', 'PAN2', 'SRSF5', 'OCIAD1', 'TCTN2', 'YWHAH', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+      #project_id: TCGA-LUAD
+      #chosen_features:
+      #  gene_ids: ['TUBA4A', 'RAB4A', 'COX4I1', 'NINL', 'SRSF6', 'IFI16', 'ZYX', 'EFTUD2', 'NXF1', 'EPB41L5', 'TNIP2', 'BIRC3', 'CEP70', 'HIF1A', 'PKM', 'SLC2A1', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+      #project_id: TCGA-COAD
+      #chosen_features:
+      #  gene_ids: ['ZBTB2', 'PARP1', 'VAPA', 'NDUFS8', 'XPO1', 'DDX39A', 'CIT', 'AGR2', 'HNRNPA1', 'GSK3B', 'MEPCE', 'CDK2', 'CD44', 'ABCC1', 'ALDH1A1', 'ABCB1', 'ABCG2', 'ALCAM', 'EPCAM', 'PROM1']
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      #data_directory: Data/TCGA-LUAD/
+      #cache_directory: Cache/TCGA-LUAD/
+      #data_directory: Data/TCGA-COAD/
+      #cache_directory: Cache/TCGA-COAD/
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Balanced_Datasets_Manager
+  TCGA-BRCA:
+  #TCGA-LUAD:
+  #TCGA-COAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    num_workers: 2
+
+optimizers:
+  Feature_Extractor:
+    type: NAdam
+    models:
+      - Feature_Extractor
+    args: {}
+  Label_Classifier:
+    type: NAdam
+    models:
+      - Label_Classifier
+    args: {}
+
+lr_schedulers: {}
+
+losses:
+  bce_with_logits_loss:
+    type: bce_with_logits_loss
+    args: {}
+
+metrics:
+  - AUROC
+  - AUPRC
+
+plots:
+  - confusion_matrix
+
+runner:
+  type: DNN_Trainer
+  epochs: 50
+  save_epoch: 1
+  log_epoch: 10
+  monitor: max valid_AUROC
+  tensorboard: true

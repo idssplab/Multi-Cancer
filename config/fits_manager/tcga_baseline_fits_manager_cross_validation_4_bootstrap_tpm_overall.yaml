@@ -1,0 +1,90 @@
+name: tcga_baseline_fits_manager_cross_validation_4_bootstrap_tpm_overall
+pin_memory: false
+mode: multi cross validation bootstrap
+
+log_directory: Logs/Fits_Manager/
+checkpoint_directory: Checkpoints/Fits_Manager/
+
+models:
+  Logistic_Regression:
+    type: LogisticRegression
+    args:
+      max_iter: 1000
+      class_weight: balanced
+  Random_Forest:
+    type: RandomForestClassifier
+    args:
+      bootstrap: false
+      n_jobs: -1
+      class_weight: balanced_subsample
+  Support_Vector_Machine:
+    type: SVC
+    args:
+      class_weight: balanced
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      target_type: overall_survival
+      genomic_type: tpm
+      n_threads: 16
+  TCGA-LUAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-LUAD
+      chosen_features:
+        gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+      data_directory: Data/TCGA-LUAD/
+      cache_directory: Cache/TCGA-LUAD/
+      target_type: overall_survival
+      genomic_type: tpm
+      n_threads: 16
+  TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-COAD
+      chosen_features:
+        gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+      data_directory: Data/TCGA-COAD/
+      cache_directory: Cache/TCGA-COAD/
+      target_type: overall_survival
+      genomic_type: tpm
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 0
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-LUAD:
+    train: true
+    batch_size: 0
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-COAD:
+    train: true
+    batch_size: 0
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+
+metrics:
+  - AUROC
+  - AUPRC
+  - c_index
+  - recall
+  - precision
+
+runner:
+  type: Baseline_Fits_Manager
+  tensorboard: false

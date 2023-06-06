@@ -1,0 +1,105 @@
+name: tcga_baseline_fits_manager_cross_validation_4_bootstrap_fpkm_clinical_overall
+pin_memory: false
+mode: multi cross validation bootstrap
+
+log_directory: Logs/Fits_Manager/
+checkpoint_directory: Checkpoints/Fits_Manager/
+
+models:
+  Logistic_Regression:
+    type: LogisticRegression
+    args:
+      max_iter: 1000
+      class_weight: balanced
+  Random_Forest:
+    type: RandomForestClassifier
+    args:
+      bootstrap: false
+      n_jobs: -1
+      class_weight: balanced_subsample
+  Support_Vector_Machine:
+    type: SVC
+    args:
+      class_weight: balanced
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        gene_ids: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'PINK1', 'RPS9', 'RPL36', 'RPL18', 'RPL28', 'PAN2', 'SRSF5', 'OCIAD1', 'TCTN2', 'YWHAH', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      target_type: overall_survival
+      genomic_type: fpkm
+      n_threads: 16
+  TCGA-LUAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-LUAD
+      chosen_features:
+        gene_ids: ['TUBA4A', 'EPB41L5', 'CEP70', 'PLEC', 'VDAC1', 'PBXIP1', 'SELENBP1', 'CORO1C', 'CLUAP1', 'SAMHD1', 'ZYX', 'MCUR1', 'PDLIM7', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'PTK7', 'ALCAM', 'EPCAM']
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-LUAD/
+      cache_directory: Cache/TCGA-LUAD/
+      target_type: overall_survival
+      genomic_type: fpkm
+      n_threads: 16
+  TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-COAD
+      chosen_features:
+        gene_ids: ['PARP1', 'VAPA', 'BRPF3', 'YTHDF1', 'XPO1', 'CIT', 'AAR2', 'SRSF1', 'SYNCRIP', 'SF3B1', 'TARDBP', 'DDX21', 'CD44', 'ABCC1', 'ABCB1', 'ABCG2', 'ALCAM', 'EPCAM', 'ALDH1A1', 'PROM1']
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-COAD/
+      cache_directory: Cache/TCGA-COAD/
+      target_type: overall_survival
+      genomic_type: fpkm
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 0
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-LUAD:
+    train: true
+    batch_size: 0
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-COAD:
+    train: true
+    batch_size: 0
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+
+metrics:
+  - AUROC
+  - AUPRC
+  - c_index
+  - recall
+  - precision
+
+runner:
+  type: Baseline_Fits_Manager
+  tensorboard: false

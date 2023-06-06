@@ -1,0 +1,10 @@
+name: Model_Test
+n_gpu: 1
+
+arch:
+  type: DNN
+  args: {}
+
+runner:
+  type: Trainer
+  checkpoint_directory: Checkpoints/

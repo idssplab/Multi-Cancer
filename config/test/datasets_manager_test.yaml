@@ -1,0 +1,120 @@
+name: Datasets_Manager_Test
+pin_memory: false
+
+log_directory: Logs/
+checkpoint_directory: Checkpoints/
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        gene_ids: ['ESR1', 'PGR', 'ERBB2', 'MKI67', 'PLAU', 'ELAVL1', 'EGFR', 'BTRC', 'FBXO6', 'SHMT2', 'KRAS', 'SRPK2', 'YWHAQ', 'PDHA1', 'EWSR1', 'ZDHHC17', 'ENO1', 'DBN1', 'PLK1', 'GSK3B']
+        clinical_numerical_ids: []
+        clinical_categorical_ids: []
+      #well_known_gene_ids: ['ESR1', 'PGR', 'ERBB2', 'MKI67', 'PLAU']
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      n_threads: 16
+  TCGA-LUAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-LUAD
+      chosen_features:
+        gene_ids: ALL
+        clinical_numerical_ids: []
+        clinical_categorical_ids: []
+      #well_known_gene_ids: ['EPCAM', 'HIF1A', 'PKM', 'PTK7', 'ALCAM', 'CADM1', 'SLC2A1'] 
+      data_directory: Data/TCGA-LUAD/
+      cache_directory: Cache/TCGA-LUAD/
+      n_threads: 16
+  TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-COAD
+      chosen_features:
+        gene_ids: []
+        clinical_numerical_ids: []
+        clinical_categorical_ids: []
+      #well_known_gene_ids: ['EPCAM', 'CD44', 'ALCAM', 'PROM1', 'ABCB1', 'ABCC1', 'ABCG2', 'ALDH1A1']
+      data_directory: Data/TCGA-COAD/
+      cache_directory: Cache/TCGA-COAD/
+      n_threads: 16
+  TCGA-UCEC:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-UCEC
+      chosen_features:
+        gene_ids: []
+        clinical_numerical_ids: []
+        clinical_categorical_ids: []
+      data_directory: Data/TCGA-UCEC/
+      cache_directory: Cache/TCGA-UCEC/
+      n_threads: 16
+  TCGA-GBM:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-GBM
+      chosen_features:
+        gene_ids: []
+        clinical_numerical_ids: []
+        clinical_categorical_ids: []
+      data_directory: Data/TCGA-GBM/
+      cache_directory: Cache/TCGA-GBM/
+      n_threads: 16
+  TCGA:
+    type: TCGA_Program_Dataset
+    args:
+      project_ids: [TCGA-BRCA, TCGA-LUAD, TCGA-COAD]
+      chosen_features:
+        gene_ids:
+          TCGA-BRCA: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'PINK1', 'RPS9', 'RPL36', 'RPL18', 'RPL28', 'PAN2', 'SRSF5', 'OCIAD1', 'TCTN2', 'YWHAH', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+          TCGA-LUAD: ['TUBA4A', 'RAB4A', 'COX4I1', 'NINL', 'SRSF6', 'IFI16', 'ZYX', 'EFTUD2', 'NXF1', 'EPB41L5', 'TNIP2', 'BIRC3', 'CEP70', 'HIF1A', 'PKM', 'SLC2A1', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+          TCGA-COAD: ['ZBTB2', 'PARP1', 'VAPA', 'NDUFS8', 'XPO1', 'DDX39A', 'CIT', 'AGR2', 'HNRNPA1', 'GSK3B', 'MEPCE', 'CDK2', 'CD44', 'ABCC1', 'ALDH1A1', 'ABCB1', 'ABCG2', 'ALCAM', 'EPCAM', 'PROM1']
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/
+      cache_directory: Cache/
+      target_type: overall_survival
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  #type: TCGA_Balanced_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-LUAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-COAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-UCEC:
+    train: true
+    batch_size: 0
+    num_workers: 2
+  TCGA-GBM:
+    train: false
+    batch_size: 0
+    num_workers: 2
+  TCGA:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+

@@ -1,0 +1,92 @@
+name: tcga_brca_coad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall
+n_gpu: 1
+pin_memory: true
+mode: multi cross validation bootstrap
+
+log_directory: Logs/Trainer/
+checkpoint_directory: Checkpoints/Trainer/
+
+models:
+  Feature_Extractor:
+    type: Feature_Extractor
+    args: 
+      genomic_dim: 20
+      clinical_numerical_dim: 3
+      clinical_categorical_dim: 11
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+  Task_Classifier:
+    type: Task_Classifier
+    args: 
+      task_dim: 3
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+      output_dim: 1
+
+datasets:
+  TCGA_BC:
+    type: TCGA_Program_Dataset
+    args:
+      project_ids: [TCGA-BRCA, TCGA-COAD]
+      chosen_features:
+        gene_ids:
+          TCGA-BRCA: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+          TCGA-COAD: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/
+      cache_directory: Cache/
+      target_type: overall_survival
+      genomic_type: tpm
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Balanced_Datasets_Manager
+  TCGA_BC:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 4
+
+optimizers:
+  Feature_Extractor:
+    type: SGD
+    models:
+      - Feature_Extractor
+    args:
+      lr: 0.01
+      momentum: 0.9
+  Task_Classifier:
+    type: SGD
+    models:
+      - Task_Classifier
+    args:
+      lr: 0.01
+      momentum: 0.9
+
+lr_schedulers: {}
+
+losses:
+  bce_with_logits_loss:
+    type: bce_with_logits_loss
+    args: {}
+
+metrics:
+  - AUROC
+  - AUPRC
+  - c_index
+  - recall
+  - precision
+
+plots: {}
+
+runner:
+  type: Multi_DNN_Trainer
+  epochs: 50
+  log_epoch: 10
+  bootstrap_project_id_indices: [0, 1]
+  tensorboard: false

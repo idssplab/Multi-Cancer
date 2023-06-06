@@ -1,0 +1,126 @@
+name: tcga_dnn_trainer_cross_validation_4_bootstrap_clinical_overall
+n_gpu: 1
+pin_memory: true
+mode: multi cross validation bootstrap
+
+log_directory: Logs/Trainer/
+checkpoint_directory: Checkpoints/Trainer/
+
+models:
+  Feature_Extractor:
+    type: Feature_Extractor
+    args: 
+      genomic_dim: 0
+      clinical_numerical_dim: 3
+      clinical_categorical_dim: 11
+      genomic_embedding_dim: 0
+      clinical_embedding_dim: 8
+  Label_Classifier:
+    type: Classifier
+    args: 
+      genomic_embedding_dim: 0
+      clinical_embedding_dim: 8
+      output_dim: 1
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      target_type: overall_survival
+      n_threads: 16
+  TCGA-LUAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-LUAD
+      chosen_features:
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-LUAD/
+      cache_directory: Cache/TCGA-LUAD/
+      target_type: overall_survival
+      n_threads: 16
+  TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-COAD
+      chosen_features:
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-COAD/
+      cache_directory: Cache/TCGA-COAD/
+      target_type: overall_survival
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 4
+  TCGA-LUAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 4
+  TCGA-COAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 4
+
+optimizers:
+  Feature_Extractor:
+    type: SGD
+    models:
+      - Feature_Extractor
+    args:
+      lr: 0.01
+      momentum: 0.9
+  Label_Classifier:
+    type: SGD
+    models:
+      - Label_Classifier
+    args:
+      lr: 0.01
+      momentum: 0.9
+
+lr_schedulers: {}
+
+losses:
+  bce_with_logits_loss:
+    type: bce_with_logits_loss
+    args: {}
+
+metrics:
+  - AUROC
+  - AUPRC
+  - c_index
+  - recall
+  - precision
+
+plots: {}
+
+runner:
+  type: DNN_Trainer
+  epochs: 50
+  log_epoch: 10
+  tensorboard: false
