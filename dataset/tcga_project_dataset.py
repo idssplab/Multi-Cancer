@@ -1,19 +1,22 @@
+from datetime import datetime
 import math
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
+
 from preprocess import TCGA_Project
 from base import BaseDataset
 from utils.logger import get_logger
 from utils.util import check_cache_files
-from pathlib import Path
 
 
 class TCGA_Project_Dataset(BaseDataset):
     '''
     TCGA Project Dataset
     '''
-    def __init__(self, project_id, data_directory, cache_directory, chosen_features=dict(), well_known_gene_ids=None, genomic_type='tpm', target_type='overall_survival', n_threads=1):
+    def __init__(self, project_id, data_directory, cache_directory, chosen_features=dict(), well_known_gene_ids=None,
+                 genomic_type='tpm', target_type='overall_survival', n_threads=1):
         '''
         Initialize the TCGA Project Dataset with parameters.
 
@@ -31,7 +34,7 @@ class TCGA_Project_Dataset(BaseDataset):
         '''
         self.project_id = project_id
 
-        #Logger
+        # Logger
         self.logger = get_logger('preprocess.tcga_project_dataset')
         self.logger.info('Creating a {} Project Dataset...'.format(self.project_id))
 
@@ -41,7 +44,7 @@ class TCGA_Project_Dataset(BaseDataset):
 
         # Get chosen features
         self.chosen_gene_ids = chosen_features.get('gene_ids', [])
-        self.chosen_clinical_numerical_ids = chosen_features.get('clinical_numerical_ids', [])
+        self.chosen_clinical_numerical_ids: list = chosen_features.get('clinical_numerical_ids', [])
         self.chosen_clinical_categorical_ids = chosen_features.get('clinical_categorical_ids', [])
         self.chosen_clinical_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
@@ -60,14 +63,22 @@ class TCGA_Project_Dataset(BaseDataset):
         self.target_type = target_type
 
         # Get data from TCGA_Project instance
-        self._genomics, self._clinicals, self._vital_statuses, self._overall_survivals, self._disease_specific_survivals, self._survival_times, self._patient_ids, self._genomic_ids, self._clinical_ids = self._getdata()
-        self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(len(self.targets[self.targets >= 0]), len(self.genomic_ids), len(self.clinical_ids)))
+        self._getdata()
+        self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
+            len(self.targets[self.targets >= 0]), len(self.genomic_ids), len(self.clinical_ids)
+        ))
         self.logger.info('Target Type {}'.format(self.target_type))
-        self.logger.info('Overall survival imbalance ratio {} %'.format(sum(self.overall_survivals)/len(self.overall_survivals)*100))
-        self.logger.info('Disease specific survival event rate {} %'.format(sum(self.disease_specific_survivals >= 0)/len(self.disease_specific_survivals)*100))
+        self.logger.info('Overall survival imbalance ratio {} %'.format(
+            sum(self.overall_survivals) / len(self.overall_survivals) * 100
+        ))
+        self.logger.info('Disease specific survival event rate {} %'.format(
+            sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
+        ))
         self.logger.info('Disease specific survival imbalance ratio {} %'.format(
-            sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0])/len(self.disease_specific_survivals[self.disease_specific_survivals >= 0])*100)
-        )
+            sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0]) / len(
+                self.disease_specific_survivals[self.disease_specific_survivals >= 0]
+            ) * 100
+        ))
 
         # Initialize BaseDataset instance
         self.base_dataset_init_kwargs = {
@@ -84,14 +95,15 @@ class TCGA_Project_Dataset(BaseDataset):
         if self.chosen_gene_ids not in ['ALL']:
             df_genomic = df_genomic[self.chosen_gene_ids]
 
-        df_clinical = self.tcga_project.clinical.T[self.chosen_clinical_ids]
+        df_clinical: pd.DataFrame = self.tcga_project.clinical.T[self.chosen_clinical_ids]
 
         if len(self.chosen_clinical_numerical_ids):
-            df_clinical[self.chosen_clinical_numerical_ids] = df_clinical[self.chosen_clinical_numerical_ids].astype('float64')
+            # Setting copy=False will not work.
+            df_clinical = df_clinical.astype(dict.fromkeys(self.chosen_clinical_numerical_ids, 'float64'))
 
             indices_latest_file_path = check_cache_files(
                 cache_directory=self.cache_directory,
-                regex=f'indices_*'
+                regex=r'indices_*'
             )
 
             if indices_latest_file_path:
@@ -113,27 +125,32 @@ class TCGA_Project_Dataset(BaseDataset):
                 clinical_numerical_ids_std = df_clinical[self.chosen_clinical_numerical_ids].std()
 
             # Impute the missing values with mean
-            df_clinical[self.chosen_clinical_numerical_ids] = df_clinical[self.chosen_clinical_numerical_ids].fillna(clinical_numerical_ids_mean.to_dict())
+            df_clinical[self.chosen_clinical_numerical_ids].fillna(clinical_numerical_ids_mean.to_dict(), inplace=True)
 
             # Normalize the numerical values
-            df_clinical[self.chosen_clinical_numerical_ids] = (df_clinical[self.chosen_clinical_numerical_ids] - clinical_numerical_ids_mean) / clinical_numerical_ids_std
+            df_clinical[self.chosen_clinical_numerical_ids] -= clinical_numerical_ids_mean
+            df_clinical[self.chosen_clinical_numerical_ids] /= clinical_numerical_ids_std
 
         if len(self.chosen_clinical_categorical_ids):
-            df_clinical = pd.get_dummies(df_clinical, columns=self.chosen_clinical_categorical_ids)
+            df_clinical = pd.get_dummies(df_clinical, columns=self.chosen_clinical_categorical_ids, dtype=float)
 
             all_tcga_clinical_categorical_ids_latest_file_path = check_cache_files(
                 cache_directory=self.cache_directory,
-                regex=f'all_tcga_clinical_categorical_ids_*'
+                regex=r'all_tcga_clinical_categorical_ids_*'
             )
             if all_tcga_clinical_categorical_ids_latest_file_path:
-                all_tcga_clinical_categorical_ids_latest_file_created_date = all_tcga_clinical_categorical_ids_latest_file_path.name.split('.')[0].split('_')[-1]
+                created_date = all_tcga_clinical_categorical_ids_latest_file_path.name.split('.')[0].split('_')[-1]
                 self.logger.info('Using all tcga clinical categorical ids cache files created at {} for {}'.format(
-                    datetime.strptime(all_tcga_clinical_categorical_ids_latest_file_created_date, "%Y%m%d%H%M%S"),
+                    datetime.strptime(created_date, "%Y%m%d%H%M%S"),
                     self.project_id
                 ))
 
-                df_all_tcga_clinical_categorical_ids = pd.read_csv(all_tcga_clinical_categorical_ids_latest_file_path, sep='\t', header=None).squeeze()
-                all_tcga_clinical_ids = self.chosen_clinical_numerical_ids+df_all_tcga_clinical_categorical_ids.squeeze().tolist()
+                all_tcga_clinical_categorical_ids: pd.Series = pd.read_csv(
+                    all_tcga_clinical_categorical_ids_latest_file_path,
+                    sep='\t',
+                    header=None
+                ).squeeze()
+                all_tcga_clinical_ids = self.chosen_clinical_numerical_ids + all_tcga_clinical_categorical_ids.tolist()
                 df_clinical = df_clinical.reindex(columns=all_tcga_clinical_ids).fillna(0)
 
         df_vital_status = self.tcga_project.vital_status.T
@@ -141,25 +158,26 @@ class TCGA_Project_Dataset(BaseDataset):
         df_disease_specific_survival = self.tcga_project.disease_specific_survival.T
         df_survival_time = self.tcga_project.survival_time.T
 
-        df_total = pd.concat([df_genomic, df_clinical, df_vital_status, df_overall_survival, df_disease_specific_survival, df_survival_time], axis=1)
+        df_total = pd.concat([df_genomic, df_clinical, df_vital_status, df_overall_survival,
+                              df_disease_specific_survival, df_survival_time], axis=1)
 
-        genomics = df_total[df_genomic.columns].to_numpy()
-        clinicals = df_total[df_clinical.columns].to_numpy()
-        vital_statuses = df_total[df_vital_status.columns].squeeze().to_numpy()
-        overall_survivals = df_total[df_overall_survival.columns].squeeze().to_numpy()
-        disease_specific_survivals = df_total[df_disease_specific_survival.columns].squeeze().to_numpy()
-        survival_times = df_total[df_survival_time.columns].squeeze().to_numpy()
-        patient_ids = tuple(df_total.index.to_list())
-        genomic_ids = tuple(df_genomic.columns.to_list())
-        clinical_ids = tuple(df_clinical.columns.to_list())
-
-        return genomics, clinicals, vital_statuses, overall_survivals, disease_specific_survivals, survival_times, patient_ids, genomic_ids, clinical_ids
+        self._genomics = df_total[df_genomic.columns].to_numpy()
+        self._clinicals = df_total[df_clinical.columns].to_numpy()
+        self._vital_statuses = df_total[df_vital_status.columns].squeeze().to_numpy()
+        self._overall_survivals = df_total[df_overall_survival.columns].squeeze().to_numpy()
+        self._disease_specific_survivals = df_total[df_disease_specific_survival.columns].squeeze().to_numpy()
+        self._survival_times = df_total[df_survival_time.columns].squeeze().to_numpy()
+        self._patient_ids = tuple(df_total.index.to_list())
+        self._genomic_ids = tuple(df_genomic.columns.to_list())
+        self._clinical_ids = tuple(df_clinical.columns.to_list())
+        return
 
     def __getitem__(self, index):
         '''
         Support the indexing of the dataset
         '''
-        return (self._genomics[index], self._clinicals[index], index), (self.targets[index], self._survival_times[index], self._vital_statuses[index])
+        return ((self._genomics[index], self._clinicals[index], index),
+                (self.targets[index], self._survival_times[index], self._vital_statuses[index]))
 
     def __len__(self):
         '''
@@ -243,7 +261,7 @@ class TCGA_Project_Dataset(BaseDataset):
         elif self.target_type == 'disease_specific_survival':
             return self._disease_specific_survivals
         else:
-            raise KeyError(f'Wrong target type')
+            raise KeyError('Wrong target type')
 
     @property
     def patient_ids(self):
@@ -251,7 +269,7 @@ class TCGA_Project_Dataset(BaseDataset):
         Return the patient ids
         '''
         return self._patient_ids
-    
+
     @property
     def genomic_ids(self):
         '''
