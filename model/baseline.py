@@ -19,9 +19,6 @@ from sklearn.naive_bayes import GaussianNB
 # K-Nearest Neighbors
 from sklearn.neighbors import KNeighborsClassifier
 
-# TabNet
-from pytorch_tabnet.tab_model import TabNetClassifier
-
 # XGBoost
 from xgboost import XGBClassifier
 

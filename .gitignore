@@ -1,5 +1,6 @@
 # Data and Config
 Data/
+Cache/
 .vscode/
 
 # Byte-compiled / optimized / DLL files

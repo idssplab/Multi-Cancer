@@ -177,7 +177,7 @@ class TCGA_Program_Dataset(BaseDataset):
                     train_patient_ids.extend(df_clinical.index.to_list())
 
                 # Impute the missing values with mean
-                df_clinical[self.chosen_clinical_numerical_ids].fillna(clinical_mean.to_dict(), inplace=True)
+                df_clinical = df_clinical.fillna(clinical_mean.to_dict())
 
                 # Normalize the numerical values
                 df_clinical[self.chosen_clinical_numerical_ids] -= clinical_mean
