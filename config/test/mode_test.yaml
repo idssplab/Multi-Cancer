@@ -1,0 +1,47 @@
+name: Mode_Test
+pin_memory: false
+#mode: multi cross validation
+#mode: multi cross validation bootstrap
+mode: multi train bootstrap
+
+log_directory: Logs/
+checkpoint_directory: Checkpoints/
+
+models:
+  Logistic_Regression:
+    type: LogisticRegression
+    args: {}
+  Random_Forest:
+    type: RandomForestClassifier
+    args: {}
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        gene_ids: ['RPS8', 'RC3H1', 'NR2C2', 'PGR', 'ERBB2', 'HSPA8', 'ACTB', 'HEXIM1', 'MKI67', 'RPS6', 'HNRNPU', 'PLAU', 'HNRNPH1', 'LYN', 'RPL11', 'PINK1', 'NXF1', 'ESR1', 'BTF3', 'MYC']
+        clinical_numerical_ids: []
+        clinical_categorical_ids: []
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 0
+    test_split: 0.2
+    #num_folds: 5
+    num_workers: 2
+
+metrics:
+  - accuracy
+  - AUROC
+  - AUPRC
+
+runner:
+  type: Baseline_Fits_Manager
+  tensorboard: false

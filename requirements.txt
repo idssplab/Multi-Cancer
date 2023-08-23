@@ -1,0 +1,12 @@
+requests
+pandas
+lxml
+pyyaml
+torch
+torchvision
+torchaudio
+scikit-learn
+lifelines
+matplotlib
+seaborn
+tensorboard

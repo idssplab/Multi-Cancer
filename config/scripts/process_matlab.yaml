@@ -1,0 +1,55 @@
+name: Prepare_MATLAB
+pin_memory: false
+
+log_directory: Logs/
+checkpoint_directory: Checkpoints/
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      well_known_gene_ids: ['ESR1', 'PGR', 'ERBB2', 'MKI67', 'PLAU']
+      genomic_type: tpm
+      n_threads: 16
+  TCGA-LUAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-LUAD
+      data_directory: Data/TCGA-LUAD/
+      cache_directory: Cache/TCGA-LUAD/
+      well_known_gene_ids: ['EPCAM', 'HIF1A', 'PKM', 'PTK7', 'ALCAM', 'CADM1', 'SLC2A1'] 
+      genomic_type: tpm
+      n_threads: 16
+  TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-COAD
+      data_directory: Data/TCGA-COAD/
+      cache_directory: Cache/TCGA-COAD/
+      well_known_gene_ids: ['EPCAM', 'CD44', 'ALCAM', 'PROM1', 'ABCB1', 'ABCC1', 'ABCG2', 'ALDH1A1']
+      genomic_type: tpm
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-LUAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+  TCGA-COAD:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
