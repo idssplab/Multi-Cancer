@@ -18,15 +18,14 @@ main.py -c [CONFIG NAME FILE]
 
 The config file names are the following:
 
-| Config Filename | Task | Notes |
+| Config Filename | Task | Notes | Table
 | --- | --- | --- |
-| tcga_brca_coad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Leave LUAD out |
-| tcga_brca_luad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Leave COAD out |
-| tcga_dnn_trainer_cross_validation_4_bootstrap_clinical_overall.yaml | Single |  |
-| tcga_dnn_trainer_cross_validation_4_bootstrap_test.yaml | Single |  |
-| tcga_luad_coad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Leave BRCA out |
-| tcga_multi_dnn_trainer_cross_validation_4_bootstrap_test.yaml | Multi | Original |
-| tcga_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Without task description |
-| tcga_multi_dnn_trainer_task_cross_validation_4_bootstrap_unordered_tpm_clinical_overall.yaml | Multi | Without Ordered RNA-Seq Data |
-| tcga_multi_dnn_trainer_task_cross_validation_4_bootstrap_unweighed_tpm_clinical_overall.yaml | Multi | Without Weighted Random Sampler |
-| tcga_multi_dnn_trainer_unique_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Unique RNA-Seq Feature Extractor |
+| tcga_brca_coad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Leave LUAD out |3|
+| tcga_brca_luad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Leave COAD out |3|
+| tcga_dnn_trainer_cross_validation_4_bootstrap_test.yaml | Single |  | 1,2|
+| tcga_luad_coad_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Leave BRCA out |3|
+| tcga_multi_dnn_trainer_cross_validation_4_bootstrap_test.yaml | Multi | Original |2,3|
+| tcga_multi_dnn_trainer_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Without task description |3|
+| tcga_multi_dnn_trainer_task_cross_validation_4_bootstrap_unordered_tpm_clinical_overall.yaml | Multi | Without Ordered RNA-Seq Data |3|
+| tcga_multi_dnn_trainer_task_cross_validation_4_bootstrap_unweighed_tpm_clinical_overall.yaml | Multi | Without Weighted Random Sampler |3|
+| tcga_multi_dnn_trainer_unique_task_cross_validation_4_bootstrap_tpm_clinical_overall.yaml | Multi | Unique RNA-Seq Feature Extractor |3|
