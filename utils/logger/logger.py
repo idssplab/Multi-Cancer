@@ -18,6 +18,8 @@ def setup_logging(log_dir, log_config='utils/logger/logger_config.json', log_lev
     Setup logging configuration
     '''
     log_config = Path(log_config)
+    log_dir = Path(log_dir) if isinstance(log_dir, str) else log_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
     if log_config.is_file():
         config = read_json(log_config)
 

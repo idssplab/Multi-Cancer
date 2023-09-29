@@ -2,6 +2,8 @@
 Data/
 Cache/
 .vscode/
+Logs/
+Checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

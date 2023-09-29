@@ -1,13 +1,15 @@
-from datetime import datetime
 import math
+from datetime import datetime
 from pathlib import Path
 
+import dgl
 import numpy as np
 import pandas as pd
+from torch import from_numpy
 
 from base import BaseDataset
 from preprocess import TCGA_Project
-from utils.api import get_filters_result_from_project
+from utils.api import get_filters_result_from_project, get_ppi_encoder
 from utils.logger import get_logger
 from utils.util import check_cache_files
 
@@ -20,7 +22,8 @@ class TCGA_Program_Dataset(BaseDataset):
     TCGA Program Dataset
     '''
     def __init__(self, project_ids, data_directory, cache_directory, chosen_features=dict(), genomic_type='tpm',
-                 target_type='overall_survival', n_threads=1):
+                 target_type='overall_survival', n_threads=1,
+                 graph_dataset=False, ppi_score_name='score', ppi_score_threshold=0.0):
         '''
         Initialize the TCGA Program Dataset with parameters.
 
@@ -34,6 +37,9 @@ class TCGA_Program_Dataset(BaseDataset):
         :param genomic_type: The genomic type that uses in this project.
         :param target_type: Specify the wanted target type that you want to use.
         :param n_threads: The number of threads to user for concatenating genomic data.
+        :param graph_dataset: Whether to use graph or not.
+        :param ppi_score_name: The name of the ppi score.
+        :param ppi_score_threshold: The threshold of the ppi score.
         '''
         if project_ids not in ['ALL']:
             self.project_ids = project_ids
@@ -87,8 +93,15 @@ class TCGA_Program_Dataset(BaseDataset):
         # Specify the target type
         self.target_type = target_type
 
+        # Specify the genomic type (use graph or not).
+        self.graph_dataset = graph_dataset
+        self.ppi_score = ppi_score_name
+        self.ppi_threshold = ppi_score_threshold
+
         # Get data from TCGA_Project instance
         self._getdata()
+
+        # Log the information of the dataset.
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_ids), len(self.clinical_ids)
         ))
@@ -136,10 +149,6 @@ class TCGA_Program_Dataset(BaseDataset):
                 df_genomic = df_genomic[self.chosen_project_gene_ids[project_id]]
             else:
                 raise ValueError(f'No gene ids specified for {project_id}')
-
-            # Rename the gene ids to numbers
-            df_genomic.rename(columns={column_name: index
-                                       for index, column_name in enumerate(df_genomic.columns)}, inplace=True)
 
             df_clinical: pd.DataFrame = tcga_project.clinical.T[self.chosen_clinical_ids]
 
@@ -217,9 +226,12 @@ class TCGA_Program_Dataset(BaseDataset):
                 columns=['project_id']
             )
 
+            # Rename the gene ids to numbers for original multi-task.
+            if not self.graph_dataset:
+                df_genomic.rename(columns=dict(zip(df_genomic.columns, range(len(df_genomic.columns)))), inplace=True)
+
             df_genomics.append(df_genomic)
             df_clinicals.append(df_clinical)
-
             df_vital_statuses.append(df_vital_status)
             df_overall_survivals.append(df_overall_survival)
             df_disease_specific_survivals.append(df_disease_specific_survival)
@@ -227,7 +239,9 @@ class TCGA_Program_Dataset(BaseDataset):
             df_primary_sites.append(df_primary_site)
             df_project_ids.append(df_project_id)
 
-        df_genomics = pd.concat(df_genomics)
+        # NOTE: There's no missing values for the original multi-task. fillna() is only for graph dataset.
+        df_genomics = pd.concat(df_genomics).fillna(0)
+
         df_clinicals = pd.concat(df_clinicals).fillna(0)
         df_vital_statuses = pd.concat(df_vital_statuses)
         df_overall_survivals = pd.concat(df_overall_survivals)
@@ -270,12 +284,20 @@ class TCGA_Program_Dataset(BaseDataset):
             axis=1
         )
 
-        self._genomics = df_totals[df_genomics.columns].to_numpy()
-        self._clinicals = df_totals[df_clinicals.columns].to_numpy()
-        self._vital_statuses = df_totals[df_vital_statuses.columns].squeeze().to_numpy()
-        self._overall_survivals = df_totals[df_overall_survivals.columns].squeeze().to_numpy()
-        self._disease_specific_survivals = df_totals[df_disease_specific_survivals.columns].squeeze().to_numpy()
-        self._survival_times = df_totals[df_survival_times.columns].squeeze().to_numpy()
+        # Transform to graph if graph_dataset is True.
+        if self.graph_dataset:
+            self._num_nodes = df_genomics.shape[-1]
+            self.logger.info(f'Number of nodes for the graph: {self._num_nodes}')
+            df_ppis = get_ppi_encoder(df_genomics.columns.to_list(), score=self.ppi_score, threshold=self.ppi_threshold)
+            self._genomics = self._process_genomic_as_graph(df_genomics, df_ppis)
+        else:
+            self._genomics = df_totals[df_genomics.columns].to_numpy(dtype=np.float32)
+
+        self._clinicals = df_totals[df_clinicals.columns].to_numpy(dtype=np.float32)
+        self._vital_statuses = df_totals[df_vital_statuses.columns].squeeze().to_numpy(dtype=np.float32)
+        self._overall_survivals = df_totals[df_overall_survivals.columns].squeeze().to_numpy(dtype=np.float32)
+        self._dss = df_totals[df_disease_specific_survivals.columns].squeeze().to_numpy(dtype=np.float32)
+        self._survival_times = df_totals[df_survival_times.columns].squeeze().to_numpy(dtype=np.float32)
         self._primary_sites = df_totals[df_primary_sites.columns].squeeze().cat.codes.to_numpy()
         self._project_ids = df_totals[df_project_ids.columns].squeeze().to_numpy()
         self._primary_site_ids = tuple(df_totals[df_primary_sites.columns].squeeze().cat.categories.to_list())
@@ -297,6 +319,19 @@ class TCGA_Program_Dataset(BaseDataset):
         self.logger.info('Saving train and test indices to {}'.format(self.cache_directory))
         return
 
+    def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
+        src = from_numpy(df_ppi['src'].to_numpy())
+        dst = from_numpy(df_ppi['dst'].to_numpy())
+        graphs: list[dgl.DGLGraph] = []
+
+        # Create a graph for each sample (patient).
+        for _, row in df_genomic.iterrows():
+            g = dgl.graph((src, dst), num_nodes=self._num_nodes)
+            g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
+            g = dgl.add_reverse_edges(g)
+            graphs.append(g)
+        return graphs
+
     def __getitem__(self, index):
         '''
         Support the indexing of the dataset
@@ -315,7 +350,9 @@ class TCGA_Program_Dataset(BaseDataset):
         '''
         Return the genomic and clinical data.
         '''
-        return np.hstack((self._genomics, self._clinicals))
+        if not self.graph_dataset:
+            return np.hstack((self._genomics, self._clinicals))
+        return np.hstack((np.expand_dims(self._genomics, 1), self._clinicals))
 
     @property
     def genomics(self):
@@ -350,7 +387,7 @@ class TCGA_Program_Dataset(BaseDataset):
         '''
         Return the 5 year disease specific survival data.
         '''
-        return self._disease_specific_survivals
+        return self._dss
 
     @property
     def survival_times(self):
@@ -379,7 +416,7 @@ class TCGA_Program_Dataset(BaseDataset):
         Return the weights for each data.
         '''
         weights = np.zeros_like(self._project_ids, dtype='float64')
-        for i in range(self._project_ids.min(), self._project_ids.max()+1):
+        for i in range(self._project_ids.min(), self._project_ids.max() + 1):
             weights[self._project_ids == i] = math.sqrt(1.0 / (self._project_ids == i).sum())
         return weights
 
@@ -391,7 +428,7 @@ class TCGA_Program_Dataset(BaseDataset):
         if self.target_type == 'overall_survival':
             return self._overall_survivals
         elif self.target_type == 'disease_specific_survival':
-            return self._disease_specific_survivals
+            return self._dss
         elif self.target_type == 'primary_site':
             return self._primary_sites
         else:

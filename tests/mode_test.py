@@ -1,16 +1,14 @@
 import argparse
 from parse_config import ConfigParser
-from mode import *
+from mode import multi_cross_validation_bootstrap, multi_train_bootstrap
 from utils import set_random_seed
 
 SEED = 1126
 set_random_seed(SEED)
 
+
 def main(config):
-    if config['mode'] == 'multi cross validation':
-        cross_validation_results = multi_cross_validation(config)
-        print(cross_validation_results)
-    elif config['mode'] == 'multi cross validation bootstrap':
+    if config['mode'] == 'multi cross validation bootstrap':
         cross_validation_bootstrap_results = multi_cross_validation_bootstrap(config)
         print(cross_validation_bootstrap_results)
     elif config['mode'] == 'multi train bootstrap':
@@ -18,6 +16,7 @@ def main(config):
         print(train_bootstrap_results)
     else:
         raise KeyError(f'Mode {config["mode"]} not supported')
+
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='Mode Test')

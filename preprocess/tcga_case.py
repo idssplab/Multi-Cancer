@@ -2,8 +2,9 @@ import copy
 from utils.logger import get_logger
 from pathlib import Path
 import pandas as pd
-from utils.api.tcga_api import *
+from utils.api.tcga_api import get_metadata_from_case, get_filters_result_from_file, download_file, download_files
 import lxml.etree as LET
+
 
 class TCGA_Case(object):
     '''
@@ -77,7 +78,7 @@ class TCGA_Case(object):
             'follow_ups',
             'follow_ups.molecular_tests',
             'samples',
-			'samples.annotations',
+            'samples.annotations',
             'samples.portions',
             'samples.portions.analytes',
             'samples.portions.analytes.aliquots',
@@ -97,7 +98,7 @@ class TCGA_Case(object):
         Get the related file paths according to case id from TCGA API.
 
         :param case_id: Specify the case id.
-        :param directory: The parent directory of the related files. 
+        :param directory: The parent directory of the related files.
         '''
         kwargs = {}
         kwargs['size'] = get_metadata_from_case(case_id=case_id, fields=['summary.file_count'])['summary']['file_count']
@@ -124,7 +125,8 @@ class TCGA_Case(object):
         # Fields
         kwargs['fields'] = ['cases.case_id', 'file_name', 'file_id']
 
-        return [directory.joinpath(file_metadata['file_name']) for file_metadata in get_filters_result_from_file(**kwargs)]
+        return [directory.joinpath(file_metadata['file_name'])
+                for file_metadata in get_filters_result_from_file(**kwargs)]
 
     def _download_files(self, case_metadata, case_file_paths, extract_directory):
         '''
@@ -168,13 +170,13 @@ class TCGA_Case(object):
             df_data = pd.read_csv(case_file_path, sep='\t', skiprows=1, index_col='gene_name')
 
             # Filter out unwanted columns
-            wanted_columns = ['unstranded', 'stranded_first', 'stranded_second', 'tpm_unstranded', 'fpkm_unstranded', 'fpkm_uq_unstranded']
+            wanted_columns = ['unstranded', 'stranded_first', 'stranded_second',
+                              'tpm_unstranded', 'fpkm_unstranded', 'fpkm_uq_unstranded']
             df_data = df_data[df_data.gene_type == 'protein_coding'][wanted_columns]
 
             rna_seq.append(df_data)
 
-        #TODO
-        # Need to decide which method is going to be used
+        # TODO: Need to decide which method is going to be used
         rna_seq = pd.concat(rna_seq, axis=1).groupby(level=0, axis=1).mean()
         rna_seq = rna_seq.groupby(level='gene_name').sum()
 
@@ -277,7 +279,10 @@ class TCGA_Case(object):
             for element in clinical_tree.xpath('.//*[not(*) and not(text())]'):
                 element.getparent().remove(element)
 
-        person_neoplasm_cancer_status = clinical_tree.xpath('.//*[local-name()="patient"]/clin_shared:person_neoplasm_cancer_status', namespaces=clinical_root.nsmap)
+        person_neoplasm_cancer_status = clinical_tree.xpath(
+            './/*[local-name()="patient"]/clin_shared:person_neoplasm_cancer_status',
+            namespaces=clinical_root.nsmap
+        )
         if len(person_neoplasm_cancer_status) > 1:
             raise ValueError(f'More than one person neoplasm cancer status for {case_id}')
         elif len(person_neoplasm_cancer_status) == 0:
@@ -286,7 +291,10 @@ class TCGA_Case(object):
         else:
             person_neoplasm_cancer_status = person_neoplasm_cancer_status[0]
 
-        follow_ups = clinical_tree.xpath('.//*[local-name()="follow_ups"]//clin_shared:person_neoplasm_cancer_status', namespaces=clinical_root.nsmap)
+        follow_ups = clinical_tree.xpath(
+            './/*[local-name()="follow_ups"]//clin_shared:person_neoplasm_cancer_status',
+            namespaces=clinical_root.nsmap
+        )
         if len(follow_ups):
             last_follow_up = follow_ups[0]
             for follow_up in follow_ups:
@@ -295,7 +303,10 @@ class TCGA_Case(object):
 
             if person_neoplasm_cancer_status is not None:
                 if last_follow_up.text != person_neoplasm_cancer_status.text:
-                    self.logger.debug(f'Person neoplasm cancer status is not match with the last follow up for {case_id}, using last follow up instead')
+                    self.logger.debug(
+                        f'Person neoplasm cancer status is not match with the last follow up for {case_id},'
+                        'using last follow up instead'
+                    )
                     person_neoplasm_cancer_status = last_follow_up
             else:
                 person_neoplasm_cancer_status = last_follow_up
@@ -380,8 +391,8 @@ class TCGA_Case(object):
         elif self.genomic_type == 'stranded-second':
             return rna_seq['stranded_second'].to_frame(name=self.case_id)
         else:
-            raise KeyError(f'Wrong genomic type')
-    
+            raise KeyError('Wrong genomic type')
+
     @property
     def clinical(self):
         '''
@@ -408,7 +419,8 @@ class TCGA_Case(object):
         '''
         Return the disease specific survival data.
         '''
-        return self._get_disease_specific_survival_data(case_id=self.case_id, case_metadata=self.case_metadata, case_file_paths=self.case_file_paths, year=year)
+        return self._get_disease_specific_survival_data(case_id=self.case_id, case_metadata=self.case_metadata,
+                                                        case_file_paths=self.case_file_paths, year=year)
 
     @property
     def survival_time(self, year=5):

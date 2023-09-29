@@ -1,5 +1,5 @@
 import torch
-from base import BaseFitsManager
+from base.base_fits_manager import BaseFitsManager
 from .tracker import MetricTracker
 
 
@@ -77,7 +77,7 @@ class Baseline_Fits_Manager(BaseFitsManager):
 
         # Get the model output
         classes = self.models[model_name].classes_
-        outputs = torch.zeros(len(targets), max(classes)+1)
+        outputs = torch.zeros(len(targets), max(classes) + 1)
         if model_name in ['Support_Vector_Machine']:
             if len(classes) > 2:
                 outputs[:, classes] = torch.from_numpy(
@@ -97,24 +97,24 @@ class Baseline_Fits_Manager(BaseFitsManager):
                     data.numpy()
                 ).astype('float32')
             )
-        
+
         # Update train metric tracker
         for metric in self.metrics:
             if metric.__name__ == 'c_index':
                 self.train_metrics.epoch_update(metric.__name__, metric(outputs, survival_times, vital_statuses))
             else:
                 self.train_metrics.epoch_update(metric.__name__, metric(outputs, targets))
-        log = {'train_'+k: v for k, v in self.train_metrics.result().items()}
+        log = {'train_' + k: v for k, v in self.train_metrics.result().items()}
 
         # Validation
         if self.valid_data_loader:
             valid_log = self._predict_proba(model_name)
-            log.update(**{'valid_'+k: v for k, v in valid_log.items()})
+            log.update(**{'valid_' + k: v for k, v in valid_log.items()})
 
         # Testing
         if self.test_data_loader:
             test_log = self._bootstrap(model_name)
-            log.update(**{'bootstrap_'+k: v for k, v in test_log.items()})
+            log.update(**{'bootstrap_' + k: v for k, v in test_log.items()})
 
         return log
 
@@ -152,7 +152,7 @@ class Baseline_Fits_Manager(BaseFitsManager):
 
         # Get the model output
         classes = self.models[model_name].classes_
-        outputs = torch.zeros(len(targets), max(classes)+1)
+        outputs = torch.zeros(len(targets), max(classes) + 1)
         if model_name in ['Support_Vector_Machine']:
             if len(classes) > 2:
                 outputs[:, classes] = torch.from_numpy(
@@ -230,7 +230,7 @@ class Baseline_Fits_Manager(BaseFitsManager):
 
             # Get the model output
             classes = self.models[model_name].classes_
-            outputs = torch.zeros(len(targets), max(classes)+1)
+            outputs = torch.zeros(len(targets), max(classes) + 1)
             if model_name in ['Support_Vector_Machine']:
                 if len(classes) > 2:
                     outputs[:, classes] = torch.from_numpy(

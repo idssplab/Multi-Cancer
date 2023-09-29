@@ -1,3 +1,3 @@
-from .tcga_case import *
-from .tcga_project import *
-from .metabric import *
+from .metabric import METABRIC
+from .tcga_case import TCGA_Case
+from .tcga_project import TCGA_Project

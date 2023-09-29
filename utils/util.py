@@ -1,18 +1,21 @@
 import json
-import yaml
+import random
+from collections import OrderedDict
+from pathlib import Path
+
+import dgl
 import numpy
 import torch
-import random
-from pathlib import Path
+import yaml
 from six import iteritems
-from collections import OrderedDict
 
 
 def read_json(fname):
     fname = Path(fname)
     with fname.open('rt') as handle:
         return json.load(handle, object_hook=OrderedDict)
-    
+
+
 def read_yaml(fname):
     _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
@@ -26,10 +29,12 @@ def read_yaml(fname):
     with fname.open('rt') as handle:
         return yaml.load(handle, Loader=yaml.FullLoader)
 
+
 def write_json(content, fname):
     fname = Path(fname)
     with fname.open('wt') as handle:
         json.dump(content, handle, indent=4, sort_keys=False)
+
 
 def write_yaml(content, fname):
     def dict_representer(dumper, data):
@@ -41,7 +46,8 @@ def write_yaml(content, fname):
     with fname.open('wt') as handle:
         yaml.dump(content, handle)
 
-def set_random_seed(seed):
+
+def set_random_seed(seed: int):
     # Set python seed
     random.seed(seed)
 
@@ -52,6 +58,11 @@ def set_random_seed(seed):
     torch.manual_seed(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+    torch.set_float32_matmul_precision('high')
+
+    # Set DGL seed.
+    dgl.seed(seed)
+
 
 def check_cache_files(cache_directory, regex):
     '''

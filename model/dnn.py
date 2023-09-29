@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from base import BaseModel
 
+
 class Genomic_Feature_Extractor(BaseModel):
     def __init__(self, genomic_dim=20, genomic_embedding_dim=8):
         super().__init__()
@@ -34,6 +35,7 @@ class Genomic_Feature_Extractor(BaseModel):
     def forward(self, genomic):
         return self.genomic_feature_extractor(genomic)
 
+
 class Clinical_Feature_Extractor(BaseModel):
     def __init__(self, clinical_numerical_dim, clinical_categorical_dim, clinical_embedding_dim=8):
         super().__init__()
@@ -42,7 +44,10 @@ class Clinical_Feature_Extractor(BaseModel):
         self.clinical_embedding_dim = clinical_embedding_dim
 
         if self.clinical_categorical_dim:
-            self.clinical_categorical_embedding = nn.Embedding(self.clinical_categorical_dim, self.clinical_embedding_dim-clinical_numerical_dim)
+            self.clinical_categorical_embedding = nn.Embedding(
+                self.clinical_categorical_dim,
+                self.clinical_embedding_dim - clinical_numerical_dim
+            )
 
         self.clinical_feature_encoder = nn.Sequential(
             nn.Linear(self.clinical_embedding_dim, self.clinical_embedding_dim),
@@ -52,7 +57,6 @@ class Clinical_Feature_Extractor(BaseModel):
             nn.Linear(self.clinical_embedding_dim, self.clinical_embedding_dim),
             nn.BatchNorm1d(self.clinical_embedding_dim)
         )
-
         self.initialization()
 
     def initialization(self):
@@ -70,7 +74,11 @@ class Clinical_Feature_Extractor(BaseModel):
     def forward(self, clinical):
         batch_size = clinical.size(0)
 
-        clinical_numerical, clinical_categorical = torch.split(clinical, [self.clinical_numerical_dim, self.clinical_categorical_dim], dim=1)
+        clinical_numerical, clinical_categorical = torch.split(
+            clinical,
+            [self.clinical_numerical_dim, self.clinical_categorical_dim],
+            dim=1
+        )
 
         if self.clinical_categorical_dim:
             clinical_categorical_embeddings = self.clinical_categorical_embedding(
@@ -79,12 +87,20 @@ class Clinical_Feature_Extractor(BaseModel):
                 )
             ).mean(dim=1)
         else:
-            clinical_categorical_embeddings = torch.zeros(batch_size, self.clinical_embedding_dim-self.clinical_numerical_dim, device=clinical.device)
+            clinical_categorical_embeddings = torch.zeros(
+                batch_size,
+                self.clinical_embedding_dim - self.clinical_numerical_dim,
+                device=clinical.device
+            )
 
-        return self.clinical_feature_encoder(torch.hstack([clinical_numerical, clinical_categorical_embeddings])).squeeze()
+        return self.clinical_feature_encoder(
+            torch.hstack([clinical_numerical, clinical_categorical_embeddings])
+        ).squeeze()
+
 
 class Feature_Extractor(BaseModel):
-    def __init__(self, genomic_dim, clinical_numerical_dim, clinical_categorical_dim, genomic_embedding_dim=8, clinical_embedding_dim=8):
+    def __init__(self, genomic_dim, clinical_numerical_dim, clinical_categorical_dim,
+                 genomic_embedding_dim=8, clinical_embedding_dim=8):
         super().__init__()
         self.clinical_numerical_dim = clinical_numerical_dim
         self.clinical_categorical_dim = clinical_categorical_dim
@@ -100,7 +116,6 @@ class Feature_Extractor(BaseModel):
                 genomic_dim=self.genomic_dim,
                 genomic_embedding_dim=self.genomic_embedding_dim
             )
-        
         if self.clinical_dim and self.clinical_embedding_dim:
             self.clinical_feature_extractor = Clinical_Feature_Extractor(
                 clinical_numerical_dim=self.clinical_numerical_dim,
@@ -122,7 +137,7 @@ class Feature_Extractor(BaseModel):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, genomic, clinical):
+    def forward(self, genomic, clinical, project_id):
         if self.genomic_dim and self.genomic_embedding_dim:
             genomic_features = self.genomic_feature_extractor(genomic)
         else:
@@ -134,11 +149,12 @@ class Feature_Extractor(BaseModel):
             clinical_features = torch.zeros(clinical.size(0), self.clinical_embedding_dim, device=clinical.device)
 
         features = torch.hstack([genomic_features, clinical_features])
-        
         return features
 
+
 class Genomic_Separate_Feature_Extractor(BaseModel):
-    def __init__(self, genomic_dim, genomic_feature_extractor_num, clinical_numerical_dim, clinical_categorical_dim, genomic_embedding_dim=8, clinical_embedding_dim=8):
+    def __init__(self, genomic_dim, genomic_feature_extractor_num, clinical_numerical_dim, clinical_categorical_dim,
+                 genomic_embedding_dim=8, clinical_embedding_dim=8):
         super().__init__()
         self.clinical_numerical_dim = clinical_numerical_dim
         self.clinical_categorical_dim = clinical_categorical_dim
@@ -158,7 +174,6 @@ class Genomic_Separate_Feature_Extractor(BaseModel):
                     genomic_embedding_dim=self.genomic_embedding_dim
                 )
             self.genomic_feature_extractors = nn.ModuleDict(self.genomic_feature_extractors)
-        
         if self.clinical_dim and self.clinical_embedding_dim:
             self.clinical_feature_extractor = Clinical_Feature_Extractor(
                 clinical_numerical_dim=self.clinical_numerical_dim,
@@ -184,8 +199,9 @@ class Genomic_Separate_Feature_Extractor(BaseModel):
         genomic_features = torch.zeros(genomic.size(0), self.genomic_embedding_dim, device=genomic.device)
 
         for p_id in self.genomic_feature_extractors:
-            if (project_id == int(p_id)).sum() > 1:
-                genomic_features[project_id == int(p_id)] = self.genomic_feature_extractors[p_id](genomic[project_id == int(p_id)])
+            i = int(p_id)
+            if (project_id == i).sum() > 1:
+                genomic_features[project_id == i] = self.genomic_feature_extractors[p_id](genomic[project_id == i])
 
         if self.clinical_dim and self.clinical_embedding_dim:
             clinical_features = self.clinical_feature_extractor(clinical)
@@ -193,11 +209,11 @@ class Genomic_Separate_Feature_Extractor(BaseModel):
             clinical_features = torch.zeros(clinical.size(0), self.clinical_embedding_dim, device=clinical.device)
 
         features = torch.hstack([genomic_features, clinical_features])
-        
         return features
 
+
 class Classifier(BaseModel):
-    def __init__(self, genomic_embedding_dim=8, clinical_embedding_dim=8, output_dim=1):
+    def __init__(self, genomic_embedding_dim=8, clinical_embedding_dim=8, output_dim=1, skip=False):
         super().__init__()
         self.genomic_embedding_dim = genomic_embedding_dim
         self.clinical_embedding_dim = clinical_embedding_dim
@@ -214,6 +230,9 @@ class Classifier(BaseModel):
             nn.Linear(self.embedding_dim, self.output_dim)
         )
 
+        if skip:
+            self.classifier = nn.Linear(2 * self.embedding_dim, self.output_dim)
+
         self.initialization()
 
     def initialization(self):
@@ -228,8 +247,9 @@ class Classifier(BaseModel):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, embeddings):
+    def forward(self, embeddings, project_id):
         return self.classifier(embeddings).squeeze()
+
 
 class Task_Classifier(BaseModel):
     def __init__(self, task_dim, genomic_embedding_dim=8, clinical_embedding_dim=8, output_dim=1):

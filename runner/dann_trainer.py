@@ -70,7 +70,6 @@ class DANN_Trainer(BaseTrainer):
             genomic = torch.nan_to_num(genomic, 0)
 
             # Extract Features
-            #embeddings = self.models['Feature_Extractor'](genomic, clinical)
             if self.models.get('Feature_Extractor', None) is not None:
                 feature_extractor_name = 'Feature_Extractor'
                 embeddings = self.models['Feature_Extractor'](genomic, clinical)
@@ -86,18 +85,16 @@ class DANN_Trainer(BaseTrainer):
             domain_loss = self.losses['cross_entropy'](domain_output, project_id)
             domain_loss.backward()
             self.optimizers['Domain_Classifier'].step()
-            
+
             # Train Feature Extractor and Label Classifier
             label_output = self.models['Label_Classifier'](embeddings)
             domain_output = self.models['Domain_Classifier'](embeddings)
-            #self.optimizers['Feature_Extractor'].zero_grad()
             self.optimizers[feature_extractor_name].zero_grad()
             self.optimizers['Label_Classifier'].zero_grad()
             label_loss = self.losses['bce_with_logits_loss'](label_output, target)
             domain_loss = self.losses['cross_entropy'](domain_output, project_id)
             loss = label_loss - 0.05 * domain_loss
             loss.backward()
-            #self.optimizers['Feature_Extractor'].step()
             self.optimizers[feature_extractor_name].step()
             self.optimizers['Label_Classifier'].step()
 
@@ -107,17 +104,20 @@ class DANN_Trainer(BaseTrainer):
             targets.append(target.detach().cpu())
 
             # Update train metric tracker for one iteration
-            self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx, mode='train')
             self.train_metrics.iter_update('loss', loss.item())
+
+        # Set step and record time in tensorboard.
+        self.writer.set_step(epoch, mode='train')
 
         # Concatenate the outputs and targets
         label_outputs = torch.cat(label_outputs)
         domain_outputs = torch.cat(domain_outputs)
         targets = torch.cat(targets)
-        
+
         # Update train metric tracker for one epoch
         for metric in self.metrics:
             self.train_metrics.epoch_update(metric.__name__, metric(label_outputs, targets))
+        self.train_metrics.epoch_update('loss')
 
         # Update log for one epoch
         log = {'train_'+k: v for k, v in self.train_metrics.result().items()}
@@ -173,14 +173,13 @@ class DANN_Trainer(BaseTrainer):
                 genomic = torch.nan_to_num(genomic, 0)
 
                 # Extract Features
-                #embeddings = self.models['Feature_Extractor'](genomic, clinical)
                 if self.models.get('Feature_Extractor', None) is not None:
                     embeddings = self.models['Feature_Extractor'](genomic, clinical)
                 elif self.models.get('Genomic_Seperate_Feature_Extractor', None) is not None:
                     embeddings = self.models['Genomic_Seperate_Feature_Extractor'](genomic, clinical, project_id)
                 else:
                     raise KeyError('Please specify a valid feature extractor')
-                
+
                 # Label Classifier
                 label_output = self.models['Label_Classifier'](embeddings)
 
@@ -193,8 +192,8 @@ class DANN_Trainer(BaseTrainer):
                 project_ids.append(project_id.detach().cpu())
                 targets.append(target.detach().cpu())
 
-                # Update valid metric tracker for one iteration
-                self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, mode='valid')
+            # Set step and record time in tensorboard.
+            self.writer.set_step(epoch, mode='valid')
 
             # Concatenate the outputs and targets
             label_outputs = torch.cat(label_outputs)
@@ -241,14 +240,13 @@ class DANN_Trainer(BaseTrainer):
                     genomic = torch.nan_to_num(genomic, 0)
 
                     # Extract Features
-                    #embeddings = self.models['Feature_Extractor'](genomic, clinical)
                     if self.models.get('Feature_Extractor', None) is not None:
                         embeddings = self.models['Feature_Extractor'](genomic, clinical)
                     elif self.models.get('Genomic_Seperate_Feature_Extractor', None) is not None:
                         embeddings = self.models['Genomic_Seperate_Feature_Extractor'](genomic, clinical, project_id)
                     else:
                         raise KeyError('Please specify a valid feature extractor')
-                    
+
                     # Label Classifier
                     label_output = self.models['Label_Classifier'](embeddings)
 

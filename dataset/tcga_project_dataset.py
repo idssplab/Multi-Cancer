@@ -1,12 +1,15 @@
-from datetime import datetime
 import math
+from datetime import datetime
 from pathlib import Path
 
+import dgl
 import numpy as np
 import pandas as pd
+from torch import from_numpy
 
 from preprocess import TCGA_Project
 from base import BaseDataset
+from utils.api import get_ppi_encoder
 from utils.logger import get_logger
 from utils.util import check_cache_files
 
@@ -16,7 +19,8 @@ class TCGA_Project_Dataset(BaseDataset):
     TCGA Project Dataset
     '''
     def __init__(self, project_id, data_directory, cache_directory, chosen_features=dict(), well_known_gene_ids=None,
-                 genomic_type='tpm', target_type='overall_survival', n_threads=1):
+                 genomic_type='tpm', target_type='overall_survival', n_threads=1,
+                 graph_dataset=False, ppi_score_name='score', ppi_score_threshold=0.0):
         '''
         Initialize the TCGA Project Dataset with parameters.
 
@@ -31,6 +35,9 @@ class TCGA_Project_Dataset(BaseDataset):
         :param genomic_type: The genomic type that uses in this project.
         :param target_type: The target type that uses in the project.
         :param n_threads: The number of threads to user for concatenating genomic data.
+        :param graph_dataset: Whether to use graph or not.
+        :param ppi_score_name: The name of the ppi score.
+        :param ppi_score_threshold: The threshold of the ppi score.
         '''
         self.project_id = project_id
 
@@ -62,8 +69,15 @@ class TCGA_Project_Dataset(BaseDataset):
         # Specify the target type
         self.target_type = target_type
 
+        # Specify the genomic type (use graph or not).
+        self.graph_dataset = graph_dataset
+        self.ppi_score = ppi_score_name
+        self.ppi_threshold = ppi_score_threshold
+
         # Get data from TCGA_Project instance
         self._getdata()
+
+        # Log the information of the dataset.
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.targets[self.targets >= 0]), len(self.genomic_ids), len(self.clinical_ids)
         ))
@@ -161,7 +175,15 @@ class TCGA_Project_Dataset(BaseDataset):
         df_total = pd.concat([df_genomic, df_clinical, df_vital_status, df_overall_survival,
                               df_disease_specific_survival, df_survival_time], axis=1)
 
-        self._genomics = df_total[df_genomic.columns].to_numpy()
+        # Transform to graph if graph_dataset is True.
+        if self.graph_dataset:
+            self._num_nodes = df_genomic.shape[-1]
+            self.logger.info(f'Number of nodes in the graph: {self._num_nodes}')
+            df_ppi = get_ppi_encoder(df_genomic.columns.to_list(), score=self.ppi_score, threshold=self.ppi_threshold)
+            self._genomics = self._process_genomic_as_graph(df_genomic, df_ppi)
+        else:
+            self._genomics = df_total[df_genomic.columns].to_numpy(dtype=np.float32)
+
         self._clinicals = df_total[df_clinical.columns].to_numpy()
         self._vital_statuses = df_total[df_vital_status.columns].squeeze().to_numpy()
         self._overall_survivals = df_total[df_overall_survival.columns].squeeze().to_numpy()
@@ -172,11 +194,24 @@ class TCGA_Project_Dataset(BaseDataset):
         self._clinical_ids = tuple(df_clinical.columns.to_list())
         return
 
+    def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
+        src = from_numpy(df_ppi['src'].to_numpy())
+        dst = from_numpy(df_ppi['dst'].to_numpy())
+        graphs: list[dgl.DGLGraph] = []
+
+        # Create a graph for each sample (patient).
+        for _, row in df_genomic.iterrows():
+            g = dgl.graph((src, dst), num_nodes=self._num_nodes)
+            g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
+            g = dgl.add_reverse_edges(g)
+            graphs.append(g)
+        return graphs
+
     def __getitem__(self, index):
         '''
         Support the indexing of the dataset
         '''
-        return ((self._genomics[index], self._clinicals[index], index),
+        return ((self._genomics[index], self._clinicals[index], index, 0),
                 (self.targets[index], self._survival_times[index], self._vital_statuses[index]))
 
     def __len__(self):
@@ -190,7 +225,9 @@ class TCGA_Project_Dataset(BaseDataset):
         '''
         Return the genomic and clinical data.
         '''
-        return np.hstack((self._genomics, self._clinicals))
+        if not self.graph_dataset:
+            return np.hstack((self._genomics, self._clinicals))
+        return np.hstack((np.expand_dims(self._genomics, 1), self._clinicals))
 
     @property
     def genomics(self):
@@ -240,7 +277,7 @@ class TCGA_Project_Dataset(BaseDataset):
         Return the weights for each data.
         '''
         weights = np.zeros_like(self.targets, dtype='float64')
-        for i in range(self.targets.min(), self.targets.max()+1):
+        for i in range(self.targets.min(), self.targets.max() + 1):
             weights[self.targets == i] = math.sqrt(1.0 / (self.targets == i).sum())
         return weights
 

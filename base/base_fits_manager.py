@@ -1,16 +1,19 @@
-from pathlib import Path
 from abc import abstractmethod
+from pathlib import Path
+
 import numpy as np
-from utils.logger import get_logger, TensorboardWriter
-import model as module_model
+
+import model.baseline as model
 import utils.runner.metric as module_metric
+from parse_config import ConfigParser
+from utils.logger import TensorboardWriter, get_logger
 
 
 class BaseFitsManager(object):
     '''
     Base class for all fits managers
     '''
-    def __init__(self, config):
+    def __init__(self, config: ConfigParser):
         '''
         Initialize the Base Fits Manager instance with parameters.
 
@@ -21,7 +24,9 @@ class BaseFitsManager(object):
         self.logger = get_logger('runner.base_fits_manager')
 
         # Create models
-        self.models = {model_name :self.config.init_obj(f'models.{model_name}', module_model) for model_name in self.config['models']}
+        self.models = {
+            model_name: self.config.init_obj(f'models.{model_name}', model) for model_name in self.config['models']
+        }
 
         # Checkpoint directory
         self.checkpoint_dir = Path(self.config.ckpt_dir)
@@ -29,7 +34,7 @@ class BaseFitsManager(object):
         # Metric functions
         self.metrics = [getattr(module_metric, met) for met in config['metrics']]
 
-        # Setup visualization writer instance                
+        # Setup visualization writer instance
         self.writer = TensorboardWriter(config.log_dir, self.logger, config['runner.tensorboard'])
 
     @abstractmethod
@@ -69,7 +74,7 @@ class BaseFitsManager(object):
         '''
         Save bootstrap statuses
 
-        :param bootstrap_statuses: 
+        :param bootstrap_statuses:
         '''
         for k, v in bootstrap_status.items():
             bootstrap_status[k] = np.stack(v, axis=0)

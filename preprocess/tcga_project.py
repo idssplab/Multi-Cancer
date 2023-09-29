@@ -7,18 +7,21 @@ import numpy as np
 import pandas as pd
 from scipy.stats import f_oneway
 from hdf5storage import savemat, loadmat
-from utils.api.tcga_api import *
+from utils.api.tcga_api import (get_metadata_from_project, get_filters_result_from_case, get_filters_result_from_file,
+                                download_file, download_files)
 from utils.util import check_cache_files
 from .tcga_case import TCGA_Case
 
 AIC_PREPROCESS = False
 AIC_POSTPROCESS = True
 
+
 class TCGA_Project(object):
     '''
     TCGA Project
     '''
-    def __init__(self, project_id, download_directory, cache_directory, well_known_gene_ids=None, genomic_type='tpm', n_threads=1):
+    def __init__(self, project_id, download_directory, cache_directory,
+                 well_known_gene_ids=None, genomic_type='tpm', n_threads=1):
         '''
         Initialize the TCGA Project instance with parameters.
 
@@ -74,7 +77,7 @@ class TCGA_Project(object):
             genomic_type=self.genomic_type
         )
 
-        # Genomic data 
+        # Genomic data
         self._genomic = self._concat_genomic_data(
             cases=self.cases,
             cache_directory=self.cache_directory,
@@ -138,8 +141,6 @@ class TCGA_Project(object):
             cache_directory=self.cache_directory
         )
 
-        #Testing
-
     def _get_project_metadata(self, project_id):
         '''
         Get the metadata according to project id from TCGA API.
@@ -156,10 +157,10 @@ class TCGA_Project(object):
 
         :param project_id: Specify the project id.
         '''
-        case_metadatas = {} 
+        case_metadatas = {}
 
         kwargs = {}
-        kwargs['size'] = get_metadata_from_project(project_id=project_id, fields=['summary.case_count'])['summary']['case_count']
+        kwargs['size'] = get_metadata_from_project(project_id, fields=['summary.case_count'])['summary']['case_count']
 
         # Filter
         kwargs['filters'] = {
@@ -194,7 +195,7 @@ class TCGA_Project(object):
             'follow_ups',
             'follow_ups.molecular_tests',
             'samples',
-			'samples.annotations',
+            'samples.annotations',
             'samples.portions',
             'samples.portions.analytes',
             'samples.portions.analytes.aliquots',
@@ -219,14 +220,14 @@ class TCGA_Project(object):
         :param project_id: Specify the project id.
         :param case_ids: Specify the case ids.
         '''
-        cases_file_metadatas = {case_id: {} for case_id in case_ids} 
+        cases_file_metadatas = {case_id: {} for case_id in case_ids}
 
         kwargs = {}
-        kwargs['size'] = get_metadata_from_project(project_id=project_id, fields=['summary.file_count'])['summary']['file_count']
+        kwargs['size'] = get_metadata_from_project(project_id, fields=['summary.file_count'])['summary']['file_count']
 
         # Filter
         kwargs['filters'] = {
-            'and':[
+            'and': [
                 {'=': {'cases.project.project_id': project_id}},
                 {'=': {'access': 'open'}},
                 {'or': [
@@ -251,10 +252,10 @@ class TCGA_Project(object):
             file_id = case_file_metadata['file_id']
 
             if len(case_file_metadata['cases']) == 1:
-                case_id = case_file_metadata['cases'][0]['case_id'] 
+                case_id = case_file_metadata['cases'][0]['case_id']
             else:
                 raise ValueError(f'More than one case for {file_name}')
-            
+
             if case_id in case_ids:
                 cases_file_metadatas[case_id][file_name] = file_id
             else:
@@ -283,11 +284,11 @@ class TCGA_Project(object):
         download_file_ids = []
 
         for case_id in cases_file_metadatas:
-            download_file_ids.extend(
-                [cases_file_metadatas[case_id][file_name]
+            download_file_ids.extend([
+                cases_file_metadatas[case_id][file_name]
                 for file_name in cases_file_metadatas[case_id]
-                if file_name in download_file_names]
-            )
+                if file_name in download_file_names
+            ])
 
         # Download files from tcga api
         if len(download_file_ids) == 1:
@@ -360,7 +361,7 @@ class TCGA_Project(object):
         :param n_threads: The number of threads to user for concatenating genomic data.
         '''
         # Check if the cache data exists
-        genomic_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'genomic_{self.genomic_type}_*')
+        genomic_latest_file_path = check_cache_files(cache_directory, regex=f'genomic_{self.genomic_type}_*')
 
         if genomic_latest_file_path:
             genomic_latest_file_created_date = genomic_latest_file_path.name.split('.')[0].split('_')[-1]
@@ -368,14 +369,13 @@ class TCGA_Project(object):
                 self.genomic_type,
                 datetime.strptime(genomic_latest_file_created_date, "%Y%m%d%H%M%S"),
                 self.project_id
-                )
-            )
+            ))
 
             df_genomic_cache = pd.read_csv(genomic_latest_file_path, sep='\t', index_col='gene_id')
 
             return df_genomic_cache
 
-        self.logger.info('Concatenating {} cases\' genomic {} data for {}...'.format(len(cases), self.genomic_type, self.project_id))
+        self.logger.info(f"Concatenating {len(cases)} cases' genomic {self.genomic_type} data for {self.project_id}...")
         df_genomic = pd.DataFrame()
 
         # Multiple threads
@@ -385,7 +385,10 @@ class TCGA_Project(object):
         df_genomic.index.rename(name='gene_id', inplace=True)
 
         # Save the result to cache directory
-        df_genomic.to_csv(cache_directory.joinpath(f'genomic_{self.genomic_type}_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_genomic.to_csv(
+            cache_directory.joinpath(f'genomic_{self.genomic_type}_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_genomic
@@ -423,7 +426,10 @@ class TCGA_Project(object):
         df_clinical.index.rename(name='clinical', inplace=True)
 
         # Save the clinical data
-        df_clinical.to_csv(cache_directory.joinpath(f'clinical_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_clinical.to_csv(
+            cache_directory.joinpath(f'clinical_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_clinical
@@ -437,7 +443,7 @@ class TCGA_Project(object):
         :param cache_directory: Specify the directory for the cache files.
         '''
         # Check if the cache data exists
-        vital_status_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'vital_status_*')
+        vital_status_latest_file_path = check_cache_files(cache_directory=cache_directory, regex='vital_status_*')
 
         if vital_status_latest_file_path:
             vital_status_latest_file_created_date = vital_status_latest_file_path.name.split('.')[0].split('_')[-1]
@@ -461,7 +467,10 @@ class TCGA_Project(object):
         df_vital_status.index.rename(name='vital_status', inplace=True)
 
         # Save the vital status data
-        df_vital_status.to_csv(cache_directory.joinpath(f'vital_status_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_vital_status.to_csv(
+            cache_directory.joinpath(f'vital_status_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_vital_status
@@ -475,16 +484,17 @@ class TCGA_Project(object):
         :param cache_directory: Specify the directory for the cache files.
         '''
         # Check if the cache data exists
-        overall_survival_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'overall_survival_*')
+        overall_survival_latest_file_path = check_cache_files(cache_directory, regex=r'overall_survival_*')
 
         if overall_survival_latest_file_path:
-            overall_survival_latest_file_created_date = overall_survival_latest_file_path.name.split('.')[0].split('_')[-1]
+            latest_file_created_date = overall_survival_latest_file_path.name.split('.')[0].split('_')[-1]
             self.logger.info('Using overall survival cache files created at {} for {}'.format(
-                datetime.strptime(overall_survival_latest_file_created_date, "%Y%m%d%H%M%S"),
+                datetime.strptime(latest_file_created_date, "%Y%m%d%H%M%S"),
                 self.project_id
             ))
 
-            df_overall_survival_cache = pd.read_csv(overall_survival_latest_file_path, sep='\t', index_col='overall_survival')
+            df_overall_survival_cache = pd.read_csv(overall_survival_latest_file_path, sep='\t',
+                                                    index_col='overall_survival')
 
             return df_overall_survival_cache
 
@@ -499,7 +509,10 @@ class TCGA_Project(object):
         df_overall_survival.index.rename(name='overall_survival', inplace=True)
 
         # Save the overall survival data
-        df_overall_survival.to_csv(cache_directory.joinpath(f'overall_survival_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_overall_survival.to_csv(
+            cache_directory.joinpath(f'overall_survival_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_overall_survival
@@ -513,31 +526,38 @@ class TCGA_Project(object):
         :param cache_directory: Specify the directory for the cache files.
         '''
         # Check if the cache data exists
-        disease_specific_survival_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'disease_specific_survival_*')
+        latest_file_path = check_cache_files(cache_directory=cache_directory, regex=r'disease_specific_survival_*')
 
-        if disease_specific_survival_latest_file_path:
-            disease_specific_survival_latest_file_created_date = disease_specific_survival_latest_file_path.name.split('.')[0].split('_')[-1]
+        if latest_file_path:
+            disease_specific_survival_latest_file_created_date = latest_file_path.name.split('.')[0].split('_')[-1]
             self.logger.info('Using disease specific survival cache files created at {} for {}'.format(
                 datetime.strptime(disease_specific_survival_latest_file_created_date, "%Y%m%d%H%M%S"),
                 self.project_id
             ))
 
-            df_disease_specific_survival_cache = pd.read_csv(disease_specific_survival_latest_file_path, sep='\t', index_col='disease_specific_survival')
+            df_disease_specific_survival_cache = pd.read_csv(latest_file_path, sep='\t',
+                                                             index_col='disease_specific_survival')
 
             return df_disease_specific_survival_cache
 
-        self.logger.info('Concatenating {} cases\' disease specific survival data for {}...'.format(len(cases), self.project_id))
+        self.logger.info(f'Concatenating {len(cases)} cases\' disease specific survival data for {self.project_id}...')
         df_disease_specific_survival = pd.DataFrame()
 
         case_ids = genomic_data.columns.to_list()
         for case_id in case_ids:
-            df_disease_specific_survival = df_disease_specific_survival.join(cases[case_id].disease_specific_survival, how='outer')
+            df_disease_specific_survival = df_disease_specific_survival.join(
+                cases[case_id].disease_specific_survival,
+                how='outer'
+            )
 
         # Add the name for index
         df_disease_specific_survival.index.rename(name='disease_specific_survival', inplace=True)
 
         # Save the disease specific survival data
-        df_disease_specific_survival.to_csv(cache_directory.joinpath(f'disease_specific_survival_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_disease_specific_survival.to_csv(
+            cache_directory.joinpath(f'disease_specific_survival_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_disease_specific_survival
@@ -551,7 +571,7 @@ class TCGA_Project(object):
         :param cache_directory: Specify the directory for the cache files.
         '''
         # Check if the cache data exists
-        survival_time_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'survival_time*')
+        survival_time_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=r'survival_time*')
 
         if survival_time_latest_file_path:
             survival_time_latest_file_created_date = survival_time_latest_file_path.name.split('.')[0].split('_')[-1]
@@ -575,7 +595,10 @@ class TCGA_Project(object):
         df_survival_time.index.rename(name='survival_time', inplace=True)
 
         # Save the survival time data
-        df_survival_time.to_csv(cache_directory.joinpath(f'survival_time_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_survival_time.to_csv(
+            cache_directory.joinpath(f'survival_time_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_survival_time
@@ -589,7 +612,7 @@ class TCGA_Project(object):
         :param cache_directory: Specify the directory for the cache files.
         '''
         # Check if the cache data exists
-        primary_site_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'primary_site_*')
+        primary_site_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=r'primary_site_*')
 
         if primary_site_latest_file_path:
             primary_site_latest_file_created_date = primary_site_latest_file_path.name.split('.')[0].split('_')[-1]
@@ -598,7 +621,8 @@ class TCGA_Project(object):
                 self.project_id
             ))
 
-            df_primary_site_cache = pd.read_csv(primary_site_latest_file_path, sep='\t', index_col='primary_site', dtype='category')
+            df_primary_site_cache = pd.read_csv(primary_site_latest_file_path, sep='\t',
+                                                index_col='primary_site', dtype='category')
 
             return df_primary_site_cache
 
@@ -613,7 +637,10 @@ class TCGA_Project(object):
         df_primary_site.index.rename(name='primary_site', inplace=True)
 
         # Save the primary site data
-        df_primary_site.to_csv(cache_directory.joinpath(f'primary_site_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
+        df_primary_site.to_csv(
+            cache_directory.joinpath(f'primary_site_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
+            sep='\t'
+        )
         self.logger.info('Saving concatenate results for {} to cache file'.format(self.project_id))
 
         return df_primary_site
@@ -628,9 +655,11 @@ class TCGA_Project(object):
         self.logger.info(f'Distilling {biogrid_file_name}...')
         df_biogrid = pd.read_csv(download_directory.joinpath(f'{biogrid_file_name}'), sep='\t', low_memory=False)
 
-        mask = (df_biogrid['Organism Name Interactor A'] == 'Homo sapiens') & (df_biogrid['Organism Name Interactor B'] == 'Homo sapiens')
+        mask = (df_biogrid['Organism Name Interactor A'] == 'Homo sapiens') &\
+               (df_biogrid['Organism Name Interactor B'] == 'Homo sapiens')
         columns = ['Official Symbol Interactor A', 'Official Symbol Interactor B']
-        df_biogrid = df_biogrid[mask][columns].drop_duplicates().groupby(columns, as_index=False).size().pivot(*columns, 'size')
+        df_biogrid = df_biogrid[mask][columns].drop_duplicates().groupby(columns, as_index=False).size().pivot(*columns,
+                                                                                                               'size')
 
         gene_ids = df_biogrid.index.union(df_biogrid.columns)
         df_biogrid = df_biogrid.reindex(index=gene_ids, columns=gene_ids).fillna(0)
@@ -640,8 +669,7 @@ class TCGA_Project(object):
 
         return df_biogrid
 
-    #TODO
-    # Try not to save the files
+    # TODO: Try not to save the files
     def _prepare_matlab_data(self, genomic_data, well_known_gene_ids, download_directory, cache_directory):
         '''
         Prepare all the needed files for the AIC code written in MATLAB.
@@ -656,7 +684,7 @@ class TCGA_Project(object):
 
         df_biogrid = self._distill_biogrid(download_directory=download_directory.parent.joinpath('BIOGRID'))
 
-        indices_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=f'indices_*')
+        indices_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=r'indices_*')
 
         if indices_latest_file_path:
             indices_latest_file_created_date = indices_latest_file_path.name.split('.')[0].split('_')[-1]
@@ -670,8 +698,8 @@ class TCGA_Project(object):
 
             genomic_data = genomic_data.iloc[:, train_indices]
 
-            genomic_data.to_csv(cache_directory.joinpath(f'matlab_genomic.tsv'), sep='\t')
-            self.logger.info('Saving genomic data used for matlab data'.format(self.project_id))
+            genomic_data.to_csv(cache_directory.joinpath('matlab_genomic.tsv'), sep='\t')
+            self.logger.info('Saving genomic data used for matlab data')
 
         for well_known_gene_id in well_known_gene_ids:
             cache_directory.joinpath(well_known_gene_id).mkdir(exist_ok=True)
@@ -697,10 +725,14 @@ class TCGA_Project(object):
             ANOVA_profile_stemness = {'ANOVA_profile_stemness': anova_pos_genomic_data}
             ANOVA_profile_nonstemness = {'ANOVA_profile_nonstemness': anova_neg_genomic_data}
 
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_bind_info.mat'), bind_info, format='5')
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat'), name_pool, format='5')
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_stemness.mat'), ANOVA_profile_stemness, format='5')
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_nonstemness.mat'), ANOVA_profile_nonstemness, format='5')
+            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_bind_info.mat'),
+                    bind_info, format='5')
+            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat'),
+                    name_pool, format='5')
+            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_stemness.mat'),
+                    ANOVA_profile_stemness, format='5')
+            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_nonstemness.mat'),
+                    ANOVA_profile_nonstemness, format='5')
 
     def _get_chosen_gene_ids(self, cache_directory, well_known_gene_ids):
         '''
@@ -711,18 +743,18 @@ class TCGA_Project(object):
         '''
         gene_candidates = {}
 
-        self.logger.info(f'Getting chosen gene ids...')
+        self.logger.info('Getting chosen gene ids...')
 
         # Initialize dictionary
         for well_known_gene_id in well_known_gene_ids:
             name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
             gene_ids = [gene_id.item() for gene_id in loadmat(name_pool_path.as_posix())['name_pool'].squeeze()]
-            
+
             for gene_id in gene_ids:
                 if gene_id not in gene_candidates:
                     gene_candidates[gene_id] = 0
 
-        # Caculate 
+        # Caculate
         for well_known_gene_id in well_known_gene_ids:
             name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
             stem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_stem.mat')
@@ -739,7 +771,7 @@ class TCGA_Project(object):
                 prv_scores[i] = np.sum(different_weights[i, :])
 
             # Rank genes using PRV scores in descending order
-            sort_gene_ids  = [gene_id.item() for gene_id in gene_ids[np.argsort(-prv_scores)]]
+            sort_gene_ids = [gene_id.item() for gene_id in gene_ids[np.argsort(-prv_scores)]]
 
             for rank_score, gene_id in enumerate(sort_gene_ids):
                 if rank_score >= len(gene_ids):
@@ -784,7 +816,7 @@ class TCGA_Project(object):
 
         # Calculate needed statistics
         SSE = np.zeros(num_patients)
-        for i in range(num_patients):    
+        for i in range(num_patients):
             if i == 0:
                 low = 0.0
                 mean_low = 0.0
@@ -798,8 +830,8 @@ class TCGA_Project(object):
             else:
                 high = target_genomic_data_sorted[i:]
                 mean_high = np.mean(high)
-            
-            sse_low  = np.sum(np.square(low - mean_low))
+
+            sse_low = np.sum(np.square(low - mean_low))
             sse_high = np.sum(np.square(high - mean_high))
             SSE[i] = sse_low + sse_high
 
@@ -809,7 +841,8 @@ class TCGA_Project(object):
         high = np.mean(target_genomic_data_sorted[cut_point:])
         threshold = (low + high) / 2
 
-        # Remove samples that are close to threshold within +-`error` range and separate all samples to two groups: pos/neg (stemness/nonstemness)
+        # Remove samples that are close to threshold within +-`error` range and separate all samples to two groups:
+        # pos/neg (stemness/nonstemness)
         pos_genomic_data = genomic_data[:, target_genomic_data > (threshold + error)]
         pos_patient_ids = itemgetter(*np.argwhere(target_genomic_data > (threshold + error)).squeeze())(patient_ids)
         neg_genomic_data = genomic_data[:, target_genomic_data < (threshold - error)]
