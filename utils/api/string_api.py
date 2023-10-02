@@ -21,7 +21,8 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'score', threshold: fl
     ppi = ppi[['preferredName_A', 'preferredName_B', 'score']]
     ppi.drop_duplicates(inplace=True)
     ppi = ppi[ppi[score] >= threshold]
-    ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].map(lambda x: gene_encoder[x])
+    #ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].map(lambda x: gene_encoder[x])
+    ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].applymap(lambda x: gene_encoder[x]) #different versions of pandas
     return ppi
 
 
