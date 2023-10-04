@@ -155,7 +155,8 @@ def visualize_ppi(ppi, score: str = 'escore', threshold: float = 0.0):
     #print edge attributes
     
 
-    G = nx.from_pandas_edgelist(ppi, 'src', 'dst', [score])
+    G = nx.from_pandas_edgelist(ppi, 'preferredName_A', 'preferredName_B', [score])
+
 
     # You can choose different layouts for your graph
     pos = nx.spring_layout(G)
@@ -170,7 +171,7 @@ def visualize_ppi(ppi, score: str = 'escore', threshold: float = 0.0):
     labels = nx.draw_networkx_labels(G, pos)
 
     # Display
-    plt.title(f'PPI Network ({score} >= {threshold})')
+    plt.title(f'PPI Network (Score: {score}, Threshold: {threshold})')
     plt.show()
 
 
