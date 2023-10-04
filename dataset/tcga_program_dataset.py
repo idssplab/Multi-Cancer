@@ -9,7 +9,7 @@ from torch import from_numpy
 
 from base import BaseDataset
 from preprocess import TCGA_Project
-from utils.api import get_filters_result_from_project, get_ppi_encoder
+from utils.api import get_filters_result_from_project, get_ppi_encoder, get_network_image
 from utils.logger import get_logger
 from utils.util import check_cache_files
 
@@ -289,6 +289,7 @@ class TCGA_Program_Dataset(BaseDataset):
             self._num_nodes = df_genomics.shape[-1]
             self.logger.info(f'Number of nodes for the graph: {self._num_nodes}')
             df_ppis = get_ppi_encoder(df_genomics.columns.to_list(), score=self.ppi_score, threshold=self.ppi_threshold)
+            get_network_image(df_genomics.columns.to_list())
             self._genomics = self._process_genomic_as_graph(df_genomics, df_ppis)
         else:
             self._genomics = df_totals[df_genomics.columns].to_numpy(dtype=np.float32)
