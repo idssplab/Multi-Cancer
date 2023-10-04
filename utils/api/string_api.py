@@ -33,7 +33,7 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
     ppi = ppi[ppi[score] >= threshold]
 
     # visualize network after filtering
-    visualize_ppi(ppi, score=score, threshold=threshold)
+    visualize_ppi(ppi, score=score, threshold=0.4)
    
     #ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].map(lambda x: gene_encoder[x])
     ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].applymap(lambda x: gene_encoder[x]) #different versions of pandas
@@ -172,6 +172,8 @@ def visualize_ppi(ppi, score: str = 'escore', threshold: float = 0.0):
 
     # Display
     plt.title(f'PPI Network (Score: {score}, Threshold: {threshold})')
+    # save image
+    plt.savefig(f'PPI Network (Score: {score}, Threshold: {threshold}).png')
     plt.show()
 
 
