@@ -16,7 +16,11 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
     Returns:
         ppi (pd.DataFrame): PPI network
     """
-    score = "escore"
+
+    # I think the setting on tcga project dataset and program dataset are overriding the "score" parameter
+    
+    score = "escore" #delete this later
+
     gene_encoder = dict(zip(chosen_genes, range(len(chosen_genes))))
 
     res_text = _get_ppi_network_from_string(chosen_genes)
@@ -34,11 +38,11 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
     ppi = ppi[ppi[score] >= threshold]
 
     # visualize network after filtering
-    visualize_ppi(ppi, score=score, threshold=0.4)
+    visualize_ppi(ppi, score=score, threshold=threshold)
 
 
-    ppi = ppi[ppi[score] >= 0.7]
-    visualize_ppi(ppi, score=score, threshold=0.7)
+    # ppi = ppi[ppi[score] >= 0.7]
+    # visualize_ppi(ppi, score=score, threshold=0.7)
 
    
     #ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].map(lambda x: gene_encoder[x])
@@ -154,6 +158,8 @@ def get_network_image(gene_list: list[str], min_score: float = 0.7):
 
 
 
+
+#visualization with node degree
 # def visualize_ppi(ppi, score='escore', threshold=0.0):
 #     # Create a new directed graph from edge list
 #     G = nx.from_pandas_edgelist(ppi, 'preferredName_A', 'preferredName_B', [score])
@@ -197,38 +203,30 @@ def get_network_image(gene_list: list[str], min_score: float = 0.7):
 #                 titleside='right'
 #             ),
 #             line_width=2))
-    
-   
 
-#     node_adjacencies = []
-#     node_text = []
-#     for node, adjacencies in enumerate(G.adjacency()):
-#         node_adjacencies.append(len(adjacencies[1]))
-#         node_text.append(f'{adjacencies[0]}, # of connections: {len(adjacencies[1])}')
-
-#     node_trace.marker.color = node_adjacencies
-#     node_trace.text = node_text
+#     # Create Node Labels
+#     node_labels = go.Scatter(
+#         x=node_x,
+#         y=node_y,
+#         mode='text',
+#         text=list(G.nodes()),
+#         textposition='top center')
 
 #     # Create Figure
-#     fig = go.Figure(data=[edge_trace, node_trace],
+#     fig = go.Figure(data=[edge_trace, node_trace, node_labels],
 #                     layout=go.Layout(
 #                         title=f'PPI Network (Score: {score}, Threshold: {threshold})',
 #                         titlefont_size=16,
 #                         showlegend=False,
 #                         hovermode='closest',
 #                         margin=dict(b=20, l=5, r=5, t=40),
-#                         annotations=[
-#                             dict(
-#                                 text="Python code: <a href='https://plotly.com/ipython-notebooks/network-graphs/'> https://plotly.com/ipython-notebooks/network-graphs/</a>",
-#                                 showarrow=False,
-#                                 xref="paper", yref="paper",
-#                                 x=0.005, y=-0.002)
-#                         ],
 #                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
 #                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
 #                     )
 
 #     fig.show()
+
+
 
 
 def visualize_ppi(ppi, score='escore', threshold=0.0):
@@ -241,7 +239,7 @@ def visualize_ppi(ppi, score='escore', threshold=0.0):
     # Create Edges
     edge_x = []
     edge_y = []
-    for edge in G.edges():
+    for edge in G.edges(data=True):
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
         edge_x.extend([x0, x1, None])
@@ -257,6 +255,9 @@ def visualize_ppi(ppi, score='escore', threshold=0.0):
     node_x = [pos[node][0] for node in G.nodes()]
     node_y = [pos[node][1] for node in G.nodes()]
 
+    # Compute average score for each node
+    node_avg_scores = [sum(d[score] for n, d in G[node].items()) / len(G[node]) if G[node] else 0 for node in G.nodes()]
+
     node_trace = go.Scatter(
         x=node_x, y=node_y,
         mode='markers',
@@ -265,11 +266,11 @@ def visualize_ppi(ppi, score='escore', threshold=0.0):
             showscale=True,
             colorscale='YlGnBu',
             reversescale=True,
-            color=[],
+            color=node_avg_scores,
             size=10,
             colorbar=dict(
                 thickness=15,
-                title='Node Connections',
+                title='Average Scores',
                 xanchor='left',
                 titleside='right'
             ),
