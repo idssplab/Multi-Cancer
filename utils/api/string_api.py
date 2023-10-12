@@ -2,7 +2,7 @@ from io import StringIO
 from time import sleep
 import networkx as nx
 import matplotlib.pyplot as plt
-
+import plotly.graph_objects as go
 import pandas as pd
 import requests
 
@@ -34,6 +34,11 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
 
     # visualize network after filtering
     visualize_ppi(ppi, score=score, threshold=0.4)
+
+
+    ppi = ppi[ppi[score] >= 0.7]
+    visualize_ppi(ppi, score=score, threshold=0.7)
+
    
     #ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].map(lambda x: gene_encoder[x])
     ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].applymap(lambda x: gene_encoder[x]) #different versions of pandas
@@ -148,33 +153,148 @@ def get_network_image(gene_list: list[str], min_score: float = 0.7):
 
 
 
-def visualize_ppi(ppi, score: str = 'escore', threshold: float = 0.0):
-    """Visualize PPI network using networkx instead of STRING API.
-    """
-    # Create a new directed graph from edge list
-    #print edge attributes
-    
+# def visualize_ppi(ppi, score='escore', threshold=0.0):
+#     # Create a new directed graph from edge list
+#     G = nx.from_pandas_edgelist(ppi, 'preferredName_A', 'preferredName_B', [score])
 
+#     # Get positions for the nodes in G
+#     pos = nx.spring_layout(G)
+
+#     # Create Edges
+#     edge_x = []
+#     edge_y = []
+#     for edge in G.edges():
+#         x0, y0 = pos[edge[0]]
+#         x1, y1 = pos[edge[1]]
+#         edge_x.extend([x0, x1, None])
+#         edge_y.extend([y0, y1, None])
+
+#     edge_trace = go.Scatter(
+#         x=edge_x, y=edge_y,
+#         line=dict(width=0.5, color='#888'),
+#         hoverinfo='none',
+#         mode='lines')
+
+#     # Create Nodes
+#     node_x = [pos[node][0] for node in G.nodes()]
+#     node_y = [pos[node][1] for node in G.nodes()]
+
+#     node_trace = go.Scatter(
+#         x=node_x, y=node_y,
+#         mode='markers',
+#         hoverinfo='text',
+#         marker=dict(
+#             showscale=True,
+#             colorscale='YlGnBu',
+#             reversescale=True,
+#             color=[],
+#             size=10,
+#             colorbar=dict(
+#                 thickness=15,
+#                 title='Node Connections',
+#                 xanchor='left',
+#                 titleside='right'
+#             ),
+#             line_width=2))
+    
+   
+
+#     node_adjacencies = []
+#     node_text = []
+#     for node, adjacencies in enumerate(G.adjacency()):
+#         node_adjacencies.append(len(adjacencies[1]))
+#         node_text.append(f'{adjacencies[0]}, # of connections: {len(adjacencies[1])}')
+
+#     node_trace.marker.color = node_adjacencies
+#     node_trace.text = node_text
+
+#     # Create Figure
+#     fig = go.Figure(data=[edge_trace, node_trace],
+#                     layout=go.Layout(
+#                         title=f'PPI Network (Score: {score}, Threshold: {threshold})',
+#                         titlefont_size=16,
+#                         showlegend=False,
+#                         hovermode='closest',
+#                         margin=dict(b=20, l=5, r=5, t=40),
+#                         annotations=[
+#                             dict(
+#                                 text="Python code: <a href='https://plotly.com/ipython-notebooks/network-graphs/'> https://plotly.com/ipython-notebooks/network-graphs/</a>",
+#                                 showarrow=False,
+#                                 xref="paper", yref="paper",
+#                                 x=0.005, y=-0.002)
+#                         ],
+#                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+#                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+#                     )
+
+#     fig.show()
+
+
+def visualize_ppi(ppi, score='escore', threshold=0.0):
+    # Create a new directed graph from edge list
     G = nx.from_pandas_edgelist(ppi, 'preferredName_A', 'preferredName_B', [score])
 
-
-    # You can choose different layouts for your graph
+    # Get positions for the nodes in G
     pos = nx.spring_layout(G)
 
-    # Draw nodes (color by degree)
-    nodes = nx.draw_networkx_nodes(G, pos, node_color='blue')
+    # Create Edges
+    edge_x = []
+    edge_y = []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
 
-    # Draw edges (color by weight)
-    edges = nx.draw_networkx_edges(G, pos, edge_color='grey')
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=0.5, color='#888'),
+        hoverinfo='none',
+        mode='lines')
 
-    # Draw labels
-    labels = nx.draw_networkx_labels(G, pos)
+    # Create Nodes
+    node_x = [pos[node][0] for node in G.nodes()]
+    node_y = [pos[node][1] for node in G.nodes()]
 
-    # Display
-    plt.title(f'PPI Network (Score: {score}, Threshold: {threshold})')
-    # save image
-    plt.savefig(f'PPI Network (Score: {score}, Threshold: {threshold}).png')
-    plt.show()
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers',
+        hoverinfo='text',
+        marker=dict(
+            showscale=True,
+            colorscale='YlGnBu',
+            reversescale=True,
+            color=[],
+            size=10,
+            colorbar=dict(
+                thickness=15,
+                title='Node Connections',
+                xanchor='left',
+                titleside='right'
+            ),
+            line_width=2))
+
+    # Create Node Labels
+    node_labels = go.Scatter(
+        x=node_x,
+        y=node_y,
+        mode='text',
+        text=list(G.nodes()),
+        textposition='top center')
+
+    # Create Figure
+    fig = go.Figure(data=[edge_trace, node_trace, node_labels],
+                    layout=go.Layout(
+                        title=f'PPI Network (Score: {score}, Threshold: {threshold})',
+                        titlefont_size=16,
+                        showlegend=False,
+                        hovermode='closest',
+                        margin=dict(b=20, l=5, r=5, t=40),
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                    )
+
+    fig.show()
 
 
 # all_genes =  ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU',
