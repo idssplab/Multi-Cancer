@@ -85,14 +85,17 @@ class Multi_DNN_Trainer(BaseTrainer):
                 epoch=0,
                 dataloader=self.test_data_loader,
             )
+            # ALERT: Metric tracking is failing with READ
             # Update test metric tracker for one epoch
             for metric in self.metrics:
                 for bootstrap_project_id_index in self.bootstrap_project_id_indices:
                     if metric.__name__ == 'c_index':
                         if bootstrap_project_id_index == '':
+                           
                             self.test_metrics.iter_update(metric.__name__,
                                                           metric(outputs, survival_times, vital_statuses))
                         else:
+                            
                             self.test_metrics.iter_update(
                                 f'{bootstrap_project_id_index}_{metric.__name__}',
                                 metric(
@@ -102,16 +105,32 @@ class Multi_DNN_Trainer(BaseTrainer):
                                 )
                             )
                     else:
+
                         if bootstrap_project_id_index == '':
                             self.test_metrics.iter_update(metric.__name__, metric(outputs, targets))
                         else:
-                            self.test_metrics.iter_update(
-                                f'{bootstrap_project_id_index}_{metric.__name__}',
-                                metric(
-                                    outputs[project_ids == bootstrap_project_id_index],
-                                    targets[project_ids == bootstrap_project_id_index]
-                                )
-                            )
+                            # check they are not empty
+                                                          
+
+                            try:
+                                self.test_metrics.iter_update(
+                                    f'{bootstrap_project_id_index}_{metric.__name__}',
+                                    metric(
+                                        outputs[project_ids == bootstrap_project_id_index], #filter by project id, but for some reason, 0 is not working
+                                        targets[project_ids == bootstrap_project_id_index]
+                                    ))
+                            except ValueError as e:
+                                print(f'Output: {outputs}')
+                                print(f'Project IDs: {project_ids}')
+                                print(f'Targets: {targets}')
+                                print(f'Bootstrap Project ID Index: {bootstrap_project_id_index}')
+                                # print metric.__name__
+                                print(f'Metric name: {metric.__name__}')
+
+                                
+                                raise e
+                            
+
             # Record bootstrap status
             if isinstance(genomics, torch.Tensor):
                 if 'genomic' not in bootstrap_status:
