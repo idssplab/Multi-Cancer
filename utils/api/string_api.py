@@ -7,7 +7,7 @@ import pandas as pd
 import requests
 
 
-def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: float = 0.4):
+def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: float = 0.0):
     """Get PPI for chosen genes
 
     Args:
@@ -35,10 +35,10 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
     # visualize network before filtering
     visualize_ppi(ppi, score=score, threshold=0.0)
     #filter by threshold
-    ppi = ppi[ppi[score] >= threshold]
+    # ppi = ppi[ppi[score] >= threshold]
 
-    # visualize network after filtering
-    visualize_ppi(ppi, score=score, threshold=threshold)
+    # # visualize network after filtering
+    # visualize_ppi(ppi, score=score, threshold=threshold)
 
 
     # ppi = ppi[ppi[score] >= 0.7]
