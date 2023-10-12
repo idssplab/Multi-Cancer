@@ -20,7 +20,7 @@ class TCGA_Project_Dataset(BaseDataset):
     '''
     def __init__(self, project_id, data_directory, cache_directory, chosen_features=dict(), well_known_gene_ids=None,
                  genomic_type='tpm', target_type='overall_survival', n_threads=1,
-                 graph_dataset=False, ppi_score_name='score', ppi_score_threshold=0.0):
+                 graph_dataset=False, ppi_score_name='escore', ppi_score_threshold=0.0):
         '''
         Initialize the TCGA Project Dataset with parameters.
 

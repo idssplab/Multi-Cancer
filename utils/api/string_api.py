@@ -16,6 +16,7 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
     Returns:
         ppi (pd.DataFrame): PPI network
     """
+    score = "escore"
     gene_encoder = dict(zip(chosen_genes, range(len(chosen_genes))))
 
     res_text = _get_ppi_network_from_string(chosen_genes)
