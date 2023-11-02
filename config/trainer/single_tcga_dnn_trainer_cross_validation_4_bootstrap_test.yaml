@@ -1,0 +1,193 @@
+name: tcga_dnn_trainer_cross_validation_4_bootstrap_test
+n_gpu: 1
+pin_memory: true
+mode: multi cross validation bootstrap
+
+log_directory: Logs/Trainer/
+checkpoint_directory: Checkpoints/Trainer/
+
+models:
+  Feature_Extractor:
+    type: Feature_Extractor
+    args: 
+      genomic_dim: 20
+      #genomic_dim: 15
+      #genomic_dim: 100
+      clinical_numerical_dim: 3
+      clinical_categorical_dim: 11
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+  Label_Classifier:
+    type: Classifier
+    args: 
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+      output_dim: 1
+
+datasets:
+  TCGA-BRCA:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-BRCA
+      chosen_features:
+        #gene_ids: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'PINK1', 'RPS9', 'RPL36', 'RPL18', 'RPL28', 'PAN2', 'SRSF5', 'OCIAD1', 'TCTN2', 'YWHAH', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+        #gene_ids: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'PINK1', 'RPS9', 'RPL36', 'RPL18', 'RPL28', 'PAN2', 'SRSF5', 'OCIAD1', 'TCTN2', 'YWHAH', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+        #gene_ids: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'TRIM25', 'RNF123', 'KIF14', 'PINK1', 'KIF20A', 'ANLN', 'RPS9', 'RPL36', 'WDR5', 'TNIP2', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+
+        #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'KIF14', 'MYC', 'RNF4', 'KRAS', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+        #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+        #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'KIF14', 'RNF4', 'KRAS', 'KIF20A', 'ANLN', 'SHMT2', 'ACTB', 'LYN', 'HNRNPU', 'RC3H2', 'RAB5A', 'RC3H1', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+
+        # 1/2
+        #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'ERBB2', 'MKI67', 'PLAU', 'PGR']
+        #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PLAU', 'PGR']
+
+        # 1/1
+        #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+        gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-BRCA/
+      cache_directory: Cache/TCGA-BRCA/
+      #genomic_type: fpkm
+      genomic_type: tpm
+      n_threads: 16
+  TCGA-LUAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-LUAD
+      chosen_features:
+        #gene_ids: ['TUBA4A', 'RAB4A', 'COX4I1', 'NINL', 'SRSF6', 'IFI16', 'ZYX', 'EFTUD2', 'NXF1', 'EPB41L5', 'TNIP2', 'BIRC3', 'CEP70', 'HIF1A', 'PKM', 'SLC2A1', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+        #gene_ids: ['TUBA4A', 'EPB41L5', 'CEP70', 'PLEC', 'VDAC1', 'PBXIP1', 'SELENBP1', 'CORO1C', 'CLUAP1', 'SAMHD1', 'ZYX', 'MCUR1', 'PDLIM7', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'PTK7', 'ALCAM', 'EPCAM']
+        #gene_ids: ['EFTUD2', 'NXF1', 'BIRC3', 'KIF14', 'RECQL4', 'PHB', 'KIF23', 'BRCA1', 'KIF20A', 'ECT2', 'TRIM28', 'WWP2', 'HSPD1', 'HIF1A', 'PKM', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7', 'SLC2A1']
+
+        #gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'ELAVL1', 'DHX9', 'HNRNPL', 'CUL3', 'RNF4', 'BRD4', 'MCM2', 'RNF2', 'EMC1', 'HIF1A', 'SLC2A1', 'PKM', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+        #gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+        #gene_ids: ['ELAVL1', 'HNRNPL', 'HNRNPU', 'RNF4', 'STAU1', 'BRD4', 'MCM2', 'LARP7', 'LRPPRC', 'RNF123', 'CUL3', 'ILF3', 'HNRNPA1', 'PKM', 'ALCAM', 'CADM1', 'EPCAM', 'HIF1A', 'PTK7', 'SLC2A1']
+
+        # 1/2
+        #gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'SLC2A1', 'HIF1A', 'PKM', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+        #gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'ELAVL1', 'HNRNPL', 'RNF4', 'BRD4', 'SLC2A1', 'HIF1A', 'PKM', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+
+        # 1/1
+        #gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+        gene_ids: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-LUAD/
+      cache_directory: Cache/TCGA-LUAD/
+      #genomic_type: fpkm
+      genomic_type: tpm
+      n_threads: 16
+  TCGA-COAD:
+    type: TCGA_Project_Dataset
+    args:
+      project_id: TCGA-COAD
+      chosen_features:
+        #gene_ids: ['ZBTB2', 'PARP1', 'VAPA', 'NDUFS8', 'XPO1', 'DDX39A', 'CIT', 'AGR2', 'HNRNPA1', 'GSK3B', 'MEPCE', 'CDK2', 'CD44', 'ABCC1', 'ALDH1A1', 'ABCB1', 'ABCG2', 'ALCAM', 'EPCAM', 'PROM1']
+        #gene_ids: ['PARP1', 'VAPA', 'BRPF3', 'YTHDF1', 'XPO1', 'CIT', 'AAR2', 'SRSF1', 'SYNCRIP', 'SF3B1', 'TARDBP', 'DDX21', 'CD44', 'ABCC1', 'ABCB1', 'ABCG2', 'ALCAM', 'EPCAM', 'ALDH1A1', 'PROM1']
+        #gene_ids: ['XPO1', 'CIT', 'MYC', 'BRD4', 'TRIM28', 'AAR2', 'GSK3B', 'STAU1', 'CUL5', 'SRSF1', 'PARP1', 'RAB5A', 'ABCB1', 'ABCC1', 'ABCG2', 'ALCAM', 'ALDH1A1', 'CD44', 'EPCAM', 'PROM1']
+
+        #gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'RNF4', 'CAND1', 'UFL1', 'EWSR1', 'HNRNPR', 'CD44', 'ALCAM', 'ABCB1', 'ABCC1', 'ABCG2', 'ALDH1A1', 'EPCAM', 'PROM1']
+        #gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+        #gene_ids: ['HNRNPL', 'HNRNPU', 'RNF4', 'CAND1', 'UFL1', 'NR2C2', 'CUL3', 'HNRNPA1', 'EWSR1', 'NPM1', 'KIF23', 'APEX1', 'ABCB1', 'ABCC1', 'ABCG2', 'ALCAM', 'ALDH1A1', 'CD44', 'EPCAM', 'PROM1']
+
+        # 1/2
+        #gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'ABCC1', 'CD44', 'ALCAM', 'ALDH1A1', 'ABCG2', 'PROM1', 'ABCB1', 'EPCAM']
+        #gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'RNF4', 'TFCP2', 'SUZ12', 'GRSF1', 'ABCC1', 'CD44', 'ALCAM', 'ALDH1A1', 'ABCG2', 'PROM1', 'ABCB1', 'EPCAM']
+
+        # 1/1
+        #gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+        gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/TCGA-COAD/
+      cache_directory: Cache/TCGA-COAD/
+      #genomic_type: fpkm
+      genomic_type: tpm
+      n_threads: 16
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA-BRCA:
+    train: true
+    batch_size: 128
+    num_folds: 5
+    test_split: 0.2
+    num_workers: 2
+  TCGA-LUAD:
+    train: true
+    batch_size: 128
+    num_folds: 5
+    test_split: 0.2
+    num_workers: 2
+  TCGA-COAD:
+    train: true
+    batch_size: 128
+    num_folds: 5
+    test_split: 0.2
+    num_workers: 2
+
+optimizers:
+  Feature_Extractor:
+    #type: Adam
+    #type: AdamW
+    #type: NAdam
+    type: SGD
+    #type: Adagrad
+    #type: ASGD
+    #type: RMSprop
+    models:
+      - Feature_Extractor
+    #args: {}
+    args:
+      lr: 0.01
+      momentum: 0.9
+  Label_Classifier:
+    #type: Adam
+    #type: AdamW
+    #type: NAdam
+    type: SGD
+    #type: Adagrad
+    #type: ASGD
+    #type: RMSprop
+    models:
+      - Label_Classifier
+    #args: {}
+    args:
+      lr: 0.01
+      momentum: 0.9
+
+lr_schedulers: {}
+
+losses:
+  bce_with_logits_loss:
+    type: bce_with_logits_loss
+    args: {}
+
+metrics:
+  - AUROC
+  - AUPRC
+  - c_index
+  - recall
+  - precision
+
+plots: {}
+
+runner:
+  type: DNN_Trainer
+  epochs: 50
+  log_epoch: 10
+  tensorboard: true

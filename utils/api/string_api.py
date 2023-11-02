@@ -41,8 +41,8 @@ def get_ppi_encoder(chosen_genes: list[str], score: str = 'escore', threshold: f
     # visualize_ppi(ppi, score=score, threshold=threshold)
 
 
-    # ppi = ppi[ppi[score] >= 0.7]
-    # visualize_ppi(ppi, score=score, threshold=0.7)
+    ppi = ppi[ppi[score] >= 0.4]
+    visualize_ppi(ppi, score=score, threshold=0.4)
 
    
     #ppi[['src', 'dst']] = ppi[['preferredName_A', 'preferredName_B']].map(lambda x: gene_encoder[x])

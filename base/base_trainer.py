@@ -417,3 +417,19 @@ class BaseTrainer(object):
 
         np.savez(self.config.log_dir.joinpath(f'{project_ids}_bootstrap_status.npz'), **bootstrap_status)
         self.logger.info('Saving bootstrap status to {}'.format(self.config.log_dir))
+
+    # def _save_cv_status(self, project_ids: list[str], cv_status: dict[str, torch.Tensor]):
+    #     '''
+    #     Save cv statuses
+
+    #     :param cv_statuses:
+    #     '''
+    #         for k, v in cv_status.items():
+    #             cv_status[k] = np.stack(v, axis=0)
+
+    #         project_ids = '_'.join(project_ids)
+    #         project_ids = project_ids.lower()
+
+    #         np.savez(self.config.log_dir.joinpath(f'{project_ids}_cv_status.npz'), **cv_status)
+    #         self.logger.info('Saving cv status to {}'.format(self.config.log_dir))
+

@@ -1,0 +1,117 @@
+name: tcga_dann_trainer_cross_validation_4_bootstrap_aic_clinical_overall_survival
+n_gpu: 1
+pin_memory: true
+mode: multi cross validation bootstrap
+
+log_directory: Logs/Trainer/
+checkpoint_directory: Checkpoints/Trainer/
+
+models:
+  #Feature_Extractor:
+  #  type: Feature_Extractor
+  #  args: 
+  #    genomic_dim: 20
+  #    #genomic_dim: 58
+  #    clinical_numerical_dim: 3
+  #    clinical_categorical_dim: 11
+  #    genomic_embedding_dim: 8
+  #    clinical_embedding_dim: 8
+  Genomic_Seperate_Feature_Extractor:
+    type: Genomic_Seperate_Feature_Extractor
+    args: 
+      genomic_dim: 20
+      genomic_feature_extractor_num: 3
+      clinical_numerical_dim: 3
+      clinical_categorical_dim: 11
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+  Label_Classifier:
+    type: Classifier
+    args: 
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+      output_dim: 1
+  Domain_Classifier:
+    type: Classifier
+    args: 
+      genomic_embedding_dim: 8
+      clinical_embedding_dim: 8
+      output_dim: 3
+
+datasets:
+  TCGA_BLC:
+    type: TCGA_Program_Dataset
+    args:
+      project_ids: [TCGA-BRCA, TCGA-LUAD, TCGA-COAD]
+      chosen_features:
+        gene_ids:
+          TCGA-BRCA: ['ESR1', 'MYC', 'HEXIM1', 'HNRNPU', 'ACTB', 'BTF3', 'PINK1', 'RPS9', 'RPL36', 'RPL18', 'RPL28', 'PAN2', 'SRSF5', 'OCIAD1', 'TCTN2', 'YWHAH', 'MKI67', 'ERBB2', 'PGR', 'PLAU']
+          TCGA-LUAD: ['TUBA4A', 'RAB4A', 'COX4I1', 'NINL', 'SRSF6', 'IFI16', 'ZYX', 'EFTUD2', 'NXF1', 'EPB41L5', 'TNIP2', 'BIRC3', 'CEP70', 'HIF1A', 'PKM', 'SLC2A1', 'ALCAM', 'CADM1', 'EPCAM', 'PTK7']
+          TCGA-COAD: ['ZBTB2', 'PARP1', 'VAPA', 'NDUFS8', 'XPO1', 'DDX39A', 'CIT', 'AGR2', 'HNRNPA1', 'GSK3B', 'MEPCE', 'CDK2', 'CD44', 'ABCC1', 'ALDH1A1', 'ABCB1', 'ABCG2', 'ALCAM', 'EPCAM', 'PROM1']
+          #TCGA-BRCA: ['ABCB1', 'ABCC1', 'ABCG2', 'ACTB', 'AGR2', 'ALCAM', 'ALDH1A1', 'BIRC3', 'BTF3', 'CADM1', 'CD44', 'CDK2', 'CEP70', 'CIT', 'COX4I1', 'DDX39A', 'EFTUD2', 'EPB41L5', 'EPCAM', 'ERBB2', 'ESR1', 'GSK3B', 'HEXIM1', 'HIF1A', 'HNRNPA1', 'HNRNPU', 'IFI16', 'MEPCE', 'MKI67', 'MYC', 'NDUFS8', 'NINL', 'NXF1', 'OCIAD1', 'PAN2', 'PARP1', 'PGR', 'PINK1', 'PKM', 'PLAU', 'PROM1', 'PTK7', 'RAB4A', 'RPL18', 'RPL28', 'RPL36', 'RPS9', 'SLC2A1', 'SRSF5', 'SRSF6', 'TCTN2', 'TNIP2', 'TUBA4A', 'VAPA', 'XPO1', 'YWHAH', 'ZBTB2', 'ZYX']
+          #TCGA-LUAD: ['ABCB1', 'ABCC1', 'ABCG2', 'ACTB', 'AGR2', 'ALCAM', 'ALDH1A1', 'BIRC3', 'BTF3', 'CADM1', 'CD44', 'CDK2', 'CEP70', 'CIT', 'COX4I1', 'DDX39A', 'EFTUD2', 'EPB41L5', 'EPCAM', 'ERBB2', 'ESR1', 'GSK3B', 'HEXIM1', 'HIF1A', 'HNRNPA1', 'HNRNPU', 'IFI16', 'MEPCE', 'MKI67', 'MYC', 'NDUFS8', 'NINL', 'NXF1', 'OCIAD1', 'PAN2', 'PARP1', 'PGR', 'PINK1', 'PKM', 'PLAU', 'PROM1', 'PTK7', 'RAB4A', 'RPL18', 'RPL28', 'RPL36', 'RPS9', 'SLC2A1', 'SRSF5', 'SRSF6', 'TCTN2', 'TNIP2', 'TUBA4A', 'VAPA', 'XPO1', 'YWHAH', 'ZBTB2', 'ZYX'] 
+          #TCGA-COAD: ['ABCB1', 'ABCC1', 'ABCG2', 'ACTB', 'AGR2', 'ALCAM', 'ALDH1A1', 'BIRC3', 'BTF3', 'CADM1', 'CD44', 'CDK2', 'CEP70', 'CIT', 'COX4I1', 'DDX39A', 'EFTUD2', 'EPB41L5', 'EPCAM', 'ERBB2', 'ESR1', 'GSK3B', 'HEXIM1', 'HIF1A', 'HNRNPA1', 'HNRNPU', 'IFI16', 'MEPCE', 'MKI67', 'MYC', 'NDUFS8', 'NINL', 'NXF1', 'OCIAD1', 'PAN2', 'PARP1', 'PGR', 'PINK1', 'PKM', 'PLAU', 'PROM1', 'PTK7', 'RAB4A', 'RPL18', 'RPL28', 'RPL36', 'RPS9', 'SLC2A1', 'SRSF5', 'SRSF6', 'TCTN2', 'TNIP2', 'TUBA4A', 'VAPA', 'XPO1', 'YWHAH', 'ZBTB2', 'ZYX'] 
+        clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        clinical_categorical_ids: 
+          - gender
+          - race
+          - ethnicity
+      data_directory: Data/
+      cache_directory: Cache/
+      target_type: overall_survival
+      n_threads: 16
+
+datasets_manager:
+  #type: TCGA_Datasets_Manager
+  type: TCGA_Balanced_Datasets_Manager
+  TCGA_BLC:
+    train: true
+    batch_size: 128
+    num_folds: 4
+    test_split: 0.2
+    num_workers: 2
+
+optimizers:
+  #Feature_Extractor:
+  #  type: NAdam
+  #  models:
+  #    - Feature_Extractor
+  #  args: {}
+  Genomic_Seperate_Feature_Extractor:
+    type: NAdam
+    models:
+      - Genomic_Seperate_Feature_Extractor
+    args: {}
+  Label_Classifier:
+    type: NAdam
+    models:
+      - Label_Classifier
+    args: {}
+  Domain_Classifier:
+    type: NAdam
+    models:
+      - Domain_Classifier
+    args: {}
+
+lr_schedulers: {}
+
+losses:
+  bce_with_logits_loss:
+    type: bce_with_logits_loss
+    args: {}
+  cross_entropy:
+    type: cross_entropy
+    args: {}
+
+metrics:
+  - AUROC
+  - AUPRC
+
+plots: {}
+
+runner:
+  type: DANN_Trainer
+  epochs: 50
+  log_epoch: 5
+  bootstrap_project_id_index: 0
+  tensorboard: true
