@@ -19,13 +19,14 @@ PROJECT_MAX_COUNT = 1000
 
 class TCGA_Program_Dataset(BaseDataset):
     '''
-    TCGA Program Dataset
+    TCGA Program Dataset, used for multi-task
     '''
     def __init__(self, project_ids, data_directory, cache_directory, chosen_features=dict(), genomic_type='tpm',
                  target_type='overall_survival', n_threads=1,
                  graph_dataset=False, ppi_score_name='escore', ppi_score_threshold=0.0):
         '''
         Initialize the TCGA Program Dataset with parameters.
+        #for external DSs, I will probably need to create this directly from the data, not from the API
 
         Needed parameters
         :param project_id: Specify the project id.
@@ -105,7 +106,7 @@ class TCGA_Program_Dataset(BaseDataset):
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_ids), len(self.clinical_ids)
         ))
-        self.logger.info('Target Type {}'.format(self.target_type))
+        self.logger.info('Target Type {}'.format(self.target_type)) #Target Type overall_survival
         self.logger.info('Overall survival imbalance ratio {} %'.format(
             sum(self.overall_survivals) / len(self.overall_survivals) * 100
         ))

@@ -16,7 +16,7 @@ from utils.util import check_cache_files
 
 class TCGA_Project_Dataset(BaseDataset):
     '''
-    TCGA Project Dataset
+    TCGA Project Dataset, used for single task learning.
     '''
     def __init__(self, project_id, data_directory, cache_directory, chosen_features=dict(), well_known_gene_ids=None,
                  genomic_type='tpm', target_type='overall_survival', n_threads=1,
@@ -54,6 +54,9 @@ class TCGA_Project_Dataset(BaseDataset):
         self.chosen_clinical_numerical_ids: list = chosen_features.get('clinical_numerical_ids', [])
         self.chosen_clinical_categorical_ids = chosen_features.get('clinical_categorical_ids', [])
         self.chosen_clinical_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
+
+        
+
 
         # Create TCGA_Project instance
         self.tcga_project_init_kwargs = {
