@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 from utils.util import check_cache_files
 
-class External_Dataset(object):
+class ExternalDataset(object):
     '''
     Inteded use SCLC cologne dataset.
     '''
@@ -64,7 +64,7 @@ class External_Dataset(object):
 
         :param download_directory: Specify the directory for the downloaded files.
         '''
-        case_file_path = download_directory.joinpath('case_lists', 'data_mrna_seq_tpm.tsv')
+        case_file_path = download_directory.joinpath('data_mrna_seq_tpm.tsv')
 
         self.logger.info('Loading case ids for {}...'.format(self.project_id))
 
@@ -92,17 +92,23 @@ class External_Dataset(object):
                 self.project_id
             ))
 
-            df_genomic_cache = pd.read_csv(genomic_latest_file_path, sep='\t', index_col='Hugo_Symbol')
+            #df_genomic_cache = pd.read_csv(genomic_latest_file_path, sep='\t', index_col='Hugo_Symbol')
+            df_genomic_cache = pd.read_csv(genomic_latest_file_path, sep='\t')
+            print(df_genomic_cache.columns)
 
             return df_genomic_cache
 
-        genomic_file_path = download_directory.joinpath('case_lists', 'data_mrna_seq_tpm.tsv')
+        genomic_file_path = download_directory.joinpath('data_mrna_seq_tpm.tsv')
 
         self.logger.info('Loading genomic data for {}...'.format(self.project_id))
+        # df_genomic = pd.read_csv(
+        #     genomic_file_path,
+        #     sep='\t', index_col='Hugo_Symbol'
+        # ).T.reindex(index=case_ids).dropna()
         df_genomic = pd.read_csv(
             genomic_file_path,
-            sep='\t', index_col='Hugo_Symbol'
-        ).T.reindex(index=case_ids).dropna()
+            sep='\t').T.dropna()
+        print(df_genomic.columns)
         df_genomic.index.rename(name=None, inplace=True)
         df_genomic.columns.rename(name='gene_id', inplace=True)
 
@@ -135,19 +141,18 @@ class External_Dataset(object):
                 self.project_id
             ))
 
-            df_clinical_cache = pd.read_csv(clinical_latest_file_path, sep='\t', index_col='clinical')
+            df_clinical_cache = pd.read_csv(clinical_latest_file_path, sep='\t')
             
             return df_clinical_cache
 
-        clinical_patient_file_path = download_directory.joinpath('data_clinical_patient.txt')
+        clinical_patient_file_path = download_directory.joinpath('data_clinical_patient.tsv')
         #clinical_sample_file_path = download_directory.joinpath('data_clinical_sample.txt')
 
         self.logger.info('Loading clinical data for {}...'.format(self.project_id))
 
         df_clinical_patient = pd.read_csv(
             clinical_patient_file_path,
-            sep='\t', skiprows=4, index_col='patient_id'
-        ).reindex(index=case_ids)
+            sep='\t',         )
         #df_clinical_patient = df_clinical_patient[['AGE_AT_DIAGNOSIS', 'CELLULARITY', 'RADIO_THERAPY', 'CHEMOTHERAPY', 'HISTOLOGICAL_SUBTYPE', 'HORMONE_THERAPY', 'BREAST_SURGERY', 'INFERRED_MENOPAUSAL_STATE']].dropna()
 
         # df_clinical_sample = pd.read_csv(
@@ -161,7 +166,7 @@ class External_Dataset(object):
         # df_clinical.columns.rename(name='clinical', inplace=True)
 
         # Save the clinical data
-        df_clinical = df_clinical.T
+        df_clinical = df_clinical_patient.T
         df_clinical.to_csv(cache_directory.joinpath(f'clinical_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'), sep='\t')
         self.logger.info('Saving results for {} to cache file'.format(self.project_id))
 
@@ -195,11 +200,10 @@ class External_Dataset(object):
 
         df_overall_survival = pd.read_csv(
             clinical_patient_file_path,
-            sep='\t', skiprows=4, index_col='patient_id'
-        ).reindex(index=case_ids)
+            sep='\t',          )
         df_overall_survival = df_overall_survival[['vital_status', 'overall_survival']].dropna()
 
-        df_overall_survival = ~((df_overall_survival['vital_status'] == '1:DECEASED') & (df_overall_survival['vital_satus'] < 60))
+        df_overall_survival = ~((df_overall_survival['vital_status'] == '1:DECEASED') & (df_overall_survival['overall_survival'] < 60))
         df_overall_survival = df_overall_survival.astype('int64')
         df_overall_survival = df_overall_survival.to_frame(name='overall_survival')
         df_overall_survival.index.rename(name=None, inplace=True)
@@ -240,8 +244,7 @@ class External_Dataset(object):
 
         df_disease_specific_survival = pd.read_csv(
             clinical_patient_file_path,
-            sep='\t', skiprows=4, index_col='patient_id'
-        ).reindex(index=case_ids)
+            sep='\t',  )
         df_disease_specific_survival = df_disease_specific_survival[['vital_status', 'overall_survival']].dropna()
 
         df_vital_status = df_disease_specific_survival['vital_status'] == 'Died of Disease'
