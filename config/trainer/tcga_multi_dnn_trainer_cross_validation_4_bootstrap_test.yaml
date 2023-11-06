@@ -80,7 +80,7 @@ datasets_manager:
   TCGA_BLC:
     train: true
     batch_size: 128
-    num_folds: 4
+    num_folds: 5
     test_split: 0.2
     num_workers: 2
 
@@ -135,4 +135,4 @@ runner:
   epochs: 50
   log_epoch: 10
   bootstrap_project_id_indices: [0, 1, 2]
-  tensorboard: false
+  tensorboard: true

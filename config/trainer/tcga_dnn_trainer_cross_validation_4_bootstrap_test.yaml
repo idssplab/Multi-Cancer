@@ -124,19 +124,19 @@ datasets_manager:
   TCGA-BRCA:
     train: true
     batch_size: 128
-    num_folds: 4
+    num_folds: 5
     test_split: 0.2
     num_workers: 2
   TCGA-LUAD:
     train: true
     batch_size: 128
-    num_folds: 4
+    num_folds: 5
     test_split: 0.2
     num_workers: 2
   TCGA-COAD:
     train: true
     batch_size: 128
-    num_folds: 4
+    num_folds: 5
     test_split: 0.2
     num_workers: 2
 
@@ -190,4 +190,4 @@ runner:
   type: DNN_Trainer
   epochs: 50
   log_epoch: 10
-  tensorboard: false
+  tensorboard: true

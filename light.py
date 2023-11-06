@@ -56,7 +56,8 @@ def main():
                 enable_checkpointing=False,
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            return
+            print(trainer.logged_metrics)
+            
         elif key == 'train':
             train = values
         elif key == 'test':
