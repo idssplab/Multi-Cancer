@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from torch import from_numpy
 
-from preprocess import TCGA_Project
+from preprocess import TCGA_Project, ExternalDataset
 from base import BaseDataset
 from utils.api import get_ppi_encoder, get_network_image, visualize_ppi
 from utils.logger import get_logger
@@ -67,7 +67,8 @@ class TCGA_Project_Dataset(BaseDataset):
             'genomic_type': genomic_type,
             'n_threads': n_threads
         }
-        self.tcga_project = TCGA_Project(**self.tcga_project_init_kwargs)
+        
+        self.tcga_project = ExternalDataset(**self.tcga_project_init_kwargs)
 
         # Specify the target type
         self.target_type = target_type

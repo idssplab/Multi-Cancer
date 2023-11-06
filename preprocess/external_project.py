@@ -1,4 +1,4 @@
-from utils.logger import get_logger
+
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -7,23 +7,27 @@ import numpy as np
 import pandas as pd
 from scipy.stats import f_oneway
 from hdf5storage import savemat, loadmat
+import sys
+sys.path.insert(0, '/home/zow/prognosis-prediction')
+from preprocess.external_dataset import ExternalDataset
+from utils.logger import get_logger
 from utils.api.tcga_api import (get_metadata_from_project, get_filters_result_from_case, get_filters_result_from_file,
                                 download_file, download_files)
 from utils.util import check_cache_files
-from .tcga_case import TCGA_Case
+
 
 AIC_PREPROCESS = False
 AIC_POSTPROCESS = True
 
 
-class TCGA_Project(object):
+class External_Project(object):
     '''
-    TCGA Project
+    External Project
     '''
     def __init__(self, project_id, download_directory, cache_directory,
                  well_known_gene_ids=None, genomic_type='tpm', n_threads=1):
         '''
-        Initialize the TCGA Project instance with parameters.
+        
 
         Needed parameters
         :param project_id: Specify the project id.
@@ -51,21 +55,25 @@ class TCGA_Project(object):
         # Maximum number of threads
         self.n_threads = n_threads
 
-       
-
+        # create safeguard for external dataset
+        
+        print('SCLC is an external dataset')
         # Get metadata
-        self.project_metadata = self._get_project_metadata(project_id=self.project_id)
-        self.case_metadatas = self._get_case_metadatas(project_id=self.project_id)
-
-        # Sorted case_ids
-        self.case_ids = sorted(self.case_metadatas)
+        self.project_metadata = ""#self._get_project_metadata(project_id=self.project_id)
+        
 
         # Download files
-        self.cases_file_paths = self._download_files(
-            project_id=self.project_id,
-            case_ids=self.case_ids,
-            extract_directory=self.download_directory
-        )
+        self.cases_file_paths = 'Data/sclc_ucologne_2015/data_clinical_patient.tsv'
+
+        self.clinical_data_df = pd.read_csv(self.cases_file_paths, sep='\t')
+        self.genetic_data_df = pd.read_csv('Data/sclc_ucologne_2015/data_mrna_seq_tpm.tsv', sep='\t')
+
+        #get case ids from the index of the dataframe
+
+        self.case_metadatas = {case_id: {} for case_id in self.clinical_data_df.index.to_list()}
+        # Sorted case_ids
+        self.case_ids = sorted(self.case_metadatas)
+        
 
         # Data types
         self.genomic_type = genomic_type
@@ -334,9 +342,10 @@ class TCGA_Project(object):
 
         cases = {}
         for case_id in case_ids:
+            #case_id = str(case_id)
             case_params = {}
             case_params['case_id'] = case_id
-            case_params['directory'] = directory.joinpath(case_id)
+            case_params['directory'] = directory.joinpath(str(case_id))
             case_params['case_metadata'] = case_metadatas[case_id]
             case_params['case_file_paths'] = cases_file_paths[case_id]
             case_params['genomic_type'] = genomic_type
