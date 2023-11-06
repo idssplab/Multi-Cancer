@@ -111,18 +111,19 @@ class Feature_Extractor(BaseModel):
         self.clinical_embedding_dim = clinical_embedding_dim
         self.embedding_dim = self.genomic_embedding_dim + self.clinical_embedding_dim
 
-        if self.genomic_dim and self.genomic_embedding_dim:
-            self.genomic_feature_extractor = Genomic_Feature_Extractor(
-                genomic_dim=self.genomic_dim,
-                genomic_embedding_dim=self.genomic_embedding_dim
-            )
-        if self.clinical_dim and self.clinical_embedding_dim:
-            self.clinical_feature_extractor = Clinical_Feature_Extractor(
-                clinical_numerical_dim=self.clinical_numerical_dim,
-                clinical_categorical_dim=self.clinical_categorical_dim,
-                clinical_embedding_dim=self.clinical_embedding_dim
-            )
+        self.genomic_feature_extractor = Genomic_Feature_Extractor(
+            genomic_dim=self.genomic_dim,
+            genomic_embedding_dim=self.genomic_embedding_dim
+        ) if self.genomic_embedding_dim > 0 else None
 
+        self.clinical_feature_extractor = Clinical_Feature_Extractor(
+            clinical_numerical_dim=self.clinical_numerical_dim,
+            clinical_categorical_dim=self.clinical_categorical_dim,
+            clinical_embedding_dim=self.clinical_embedding_dim
+        ) if self.clinical_embedding_dim > 0 else None
+
+        assert self.genomic_feature_extractor or self.clinical_feature_extractor, \
+            'Both genomic_embedding_dim and clinical_embedding_dim cannot be 0.'
         self.initialization()
 
     def initialization(self):
@@ -138,18 +139,19 @@ class Feature_Extractor(BaseModel):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, genomic, clinical, project_id):
-        if self.genomic_dim and self.genomic_embedding_dim:
-            genomic_features = self.genomic_feature_extractor(genomic)
-        else:
-            genomic_features = torch.zeros(genomic.size(0), self.genomic_embedding_dim, device=genomic.device)
+        if self.genomic_feature_extractor is None:
+            clinical_features: torch.Tensor = self.clinical_feature_extractor(clinical)
+            genomic_features = torch.zeros(clinical_features.shape, device=clinical_features.device)
 
-        if self.clinical_dim and self.clinical_embedding_dim:
-            clinical_features = self.clinical_feature_extractor(clinical)
-        else:
-            clinical_features = torch.zeros(clinical.size(0), self.clinical_embedding_dim, device=clinical.device)
+        elif self.clinical_feature_extractor is None:
+            genomic_features: torch.Tensor = self.genomic_feature_extractor(genomic)
+            clinical_features = torch.zeros(genomic_features.shape, device=genomic_features.device)
 
-        features = torch.hstack([genomic_features, clinical_features])
-        return features
+        else:
+            genomic_features: torch.Tensor = self.genomic_feature_extractor(genomic)
+            clinical_features: torch.Tensor = self.clinical_feature_extractor(clinical)
+
+        return torch.hstack([genomic_features, clinical_features])
 
 
 class Genomic_Separate_Feature_Extractor(BaseModel):

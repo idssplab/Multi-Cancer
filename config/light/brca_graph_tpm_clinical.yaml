@@ -49,6 +49,7 @@ datasets:
   ppi_score_threshold: 0.4
 
 datasets_manager:
+  type: TCGA_Datasets_Manager
   TCGA_BLC:
     train: true
     batch_size: 128

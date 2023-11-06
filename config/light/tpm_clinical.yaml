@@ -46,6 +46,7 @@ datasets:
   n_threads: 16
 
 datasets_manager:
+  type: TCGA_Balanced_Datasets_Manager
   TCGA_BLC:
     train: true
     batch_size: 128
