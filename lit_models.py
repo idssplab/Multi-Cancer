@@ -51,6 +51,13 @@ class LitFullModel(pl.LightningModule):
         self.step_outputs.append(y.detach().cpu())
         self.step_labels.append(overall_survival.detach().cpu().type(torch.int))
         self.step_project_ids.append(project_id.detach().cpu())
+        self.step_results.append({
+            'output': y.detach().cpu(),
+            'label': overall_survival.detach().cpu().type(torch.int64),
+            'survival_time': survival_time.detach().cpu(),
+            'vital_status': vital_status.detach().cpu(),
+            'project_id': project_id.detach().cpu(),
+        })
         
         return loss
 
@@ -63,21 +70,31 @@ class LitFullModel(pl.LightningModule):
         vital_status = torch.cat(self.step_vital_status)
         for i in torch.unique(project_id):
             mask = project_id == i
+
+
+         
+
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
             prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')
-            precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary')
-            recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary')
+            #precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary')
+            #recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary')
+            #precision, recall, thresholds = torchmetrics.functional.precision_recall_curve(outputs[mask], labels[mask], 'binary')
             cindex = concordance_index(survival_time[mask], outputs[mask], vital_status[mask])
+
+
+
 
             self.log(f'roc_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'prc_{i}', prc, on_epoch=True, on_step=False)
-            self.log(f'precision_{i}', precision, on_epoch=True, on_step=False)
-            self.log(f'recall_{i}', recall, on_epoch=True, on_step=False)
+            #self.log(f'precision_{i}', precision, on_epoch=True, on_step=False)
+            #self.log(f'recall_{i}', recall, on_epoch=True, on_step=False)
             self.log(f'cindex_{i}', cindex, on_epoch=True, on_step=False)
 
         self.step_outputs.clear()
         self.step_labels.clear()
         self.step_project_ids.clear()
+        self.step_survival_time.clear()
+        self.step_vital_status.clear()
 
     def validation_step(self, batch, batch_idx):
         loss = self._shared_eval(batch, batch_idx)
