@@ -64,6 +64,8 @@ fig.update_layout(
 )
 
 # Show the figure
+
+fig.write_image("loss.pdf")
 fig.show()
 
 
