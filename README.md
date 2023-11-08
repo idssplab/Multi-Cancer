@@ -1,5 +1,5 @@
 # Exploiting Common Patterns in Diverse Cancer Types via Multi-Task Learning 
-
+ We developed a Python code base to interact with the REST API provided by the GDC Portal for data filtering and download. Due to Python packages' limited functionality compared to those in other languages like the R package TCGAbiolinks, we resorted to using this custom Python code base. We filtered out patients lacking survival status, time, complete RNA-Seq, and clinical data. We downloaded the data of qualified patients using GDC API version 33.1, released on May 31, 2022 
 
 ## System Requirements
 
