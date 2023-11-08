@@ -65,14 +65,17 @@ class External_Project(object):
         # Download files
         self.cases_file_paths = 'Data/sclc_ucologne_2015/data_clinical_patient.tsv'
 
-        self.clinical_data_df = pd.read_csv(self.cases_file_paths, sep='\t')
+        self.clinical_data_df = pd.read_csv(self.cases_file_paths, sep='\t', index_col='PATIENT_ID')
         self.genetic_data_df = pd.read_csv('Data/sclc_ucologne_2015/data_mrna_seq_tpm.tsv', sep='\t')
+
 
         #get case ids from the index of the dataframe
 
         self.case_metadatas = {case_id: {} for case_id in self.clinical_data_df.index.to_list()}
         # Sorted case_ids
         self.case_ids = sorted(self.case_metadatas)
+
+        print('Self case ids', self.case_ids)
         
 
         # Data types
@@ -344,13 +347,28 @@ class External_Project(object):
         for case_id in case_ids:
             #case_id = str(case_id)
             case_params = {}
+            #PATIENT_ID	gender	ethnicity	race	year_of_diagnosis	
+            # year_of_birth	overall_survival	vital_status	disease_specific_survival	primary_site
             case_params['case_id'] = case_id
             case_params['directory'] = directory.joinpath(str(case_id))
             case_params['case_metadata'] = case_metadatas[case_id]
-            case_params['case_file_paths'] = cases_file_paths[case_id]
+            case_params['case_file_paths'] = cases_file_paths
             case_params['genomic_type'] = genomic_type
+            #get from the clinical DF the row that corresponds to the case id == PATIENT_ID
+            case_params['clinical_data'] = self.clinical_data_df.loc[case_id]
 
-            cases[case_id] = TCGA_Case(**case_params)
+            case_params['primary_site'] = case_params['clinical_data']['primary_site']
+            case_params['vital_status'] = case_params['clinical_data']['vital_status']
+            case_params['overall_survival'] = case_params['clinical_data']['overall_survival']
+            case_params['disease_specific_survival'] = case_params['clinical_data']['disease_specific_survival']
+            case_params['gender'] = case_params['clinical_data']['gender']
+            case_params['ethnicity'] = case_params['clinical_data']['ethnicity']
+            case_params['race'] = case_params['clinical_data']['race']
+
+
+            
+
+            cases[case_id] = case_params#TCGA_Case(**case_params)
 
         return cases
 
@@ -358,10 +376,17 @@ class External_Project(object):
         '''
         The multi-threaded wrapper of getting genomic data from a case.
 
-        :param t_case: The dictionary pair of (case_id, TCGA_Case).
+        :param t_case: The dictionary pair of (case_id, Case).
+        Case is also a dictionary now 
         '''
         case_id, case = t_case
-        return case_id, case.genomic
+        print(case_id)
+        print("Genetic df")
+        print(self.genetic_data_df.columns)
+        # choose the row in genetic data that corresponds to the case id in the patient id column
+        
+        genomic_data = self.genetic_data_df[case_id]
+        return case_id, genomic_data
 
     def _concat_genomic_data(self, cases, cache_directory, n_threads):
         '''
@@ -429,7 +454,8 @@ class External_Project(object):
         self.logger.info('Concatenating {} cases\' clinical data for {}...'.format(len(cases), self.project_id))
         df_clinical = pd.DataFrame()
 
-        case_ids = genomic_data.columns.to_list()
+        case_ids = genomic_data.iloc[2:, 0].to_list()
+        print(genomic_data.iloc[2:, 0])
         for case_id in case_ids:
             df_clinical = df_clinical.join(cases[case_id].clinical, how='outer')
 
@@ -470,9 +496,9 @@ class External_Project(object):
         self.logger.info('Concatenating {} cases\' vital status data for {}...'.format(len(cases), self.project_id))
         df_vital_status = pd.DataFrame()
 
-        case_ids = genomic_data.columns.to_list()
+        case_ids = self.case_ids
         for case_id in case_ids:
-            df_vital_status = df_vital_status.join(cases[case_id].vital_status, how='outer')
+            df_vital_status = df_vital_status.join(cases[case_id]['vital_status'], how='outer')
 
         # Add the name for index
         df_vital_status.index.rename(name='vital_status', inplace=True)
@@ -514,7 +540,7 @@ class External_Project(object):
 
         case_ids = genomic_data.columns.to_list()
         for case_id in case_ids:
-            df_overall_survival = df_overall_survival.join(cases[case_id].overall_survival, how='outer')
+            df_overall_survival = df_overall_survival.join(cases[case_id]['overall_survival'], how='outer')
 
         # Add the name for index
         df_overall_survival.index.rename(name='overall_survival', inplace=True)
@@ -557,7 +583,7 @@ class External_Project(object):
         case_ids = genomic_data.columns.to_list()
         for case_id in case_ids:
             df_disease_specific_survival = df_disease_specific_survival.join(
-                cases[case_id].disease_specific_survival,
+                cases[case_id]['disease_specific_survival'],
                 how='outer'
             )
 
@@ -642,7 +668,7 @@ class External_Project(object):
 
         case_ids = genomic_data.columns.to_list()
         for case_id in case_ids:
-            df_primary_site = df_primary_site.join(cases[case_id].primary_site, how='outer')
+            df_primary_site = df_primary_site.join(cases[case_id]['primary_site'], how='outer')
 
         # Add the name for index
         df_primary_site.index.rename(name='primary_site', inplace=True)
@@ -744,7 +770,9 @@ class External_Project(object):
                     ANOVA_profile_stemness, format='5')
             savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_nonstemness.mat'),
                     ANOVA_profile_nonstemness, format='5')
+            
 
+# !Need to modify in the future
     def _get_chosen_gene_ids(self, cache_directory, well_known_gene_ids):
         '''
         Calculate marker PRV scores and return the chosen gene ids based on built GINs.
@@ -752,58 +780,60 @@ class External_Project(object):
         :param cache_directory: Specify the directory for the cache files.
         :param well_known_gene_ids: The well-known gene ids of the project.
         '''
-        gene_candidates = {}
+        # gene_candidates = {}
 
-        self.logger.info('Getting chosen gene ids...')
+        # self.logger.info('Getting chosen gene ids...')
 
-        # Initialize dictionary
-        for well_known_gene_id in well_known_gene_ids:
-            name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
-            gene_ids = [gene_id.item() for gene_id in loadmat(name_pool_path.as_posix())['name_pool'].squeeze()]
+        # # Initialize dictionary
+        # for well_known_gene_id in well_known_gene_ids:
+        #     name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
+        #     gene_ids = [gene_id.item() for gene_id in loadmat(name_pool_path.as_posix())['name_pool'].squeeze()]
 
-            for gene_id in gene_ids:
-                if gene_id not in gene_candidates:
-                    gene_candidates[gene_id] = 0
+        #     for gene_id in gene_ids:
+        #         if gene_id not in gene_candidates:
+        #             gene_candidates[gene_id] = 0
 
-        # Caculate
-        for well_known_gene_id in well_known_gene_ids:
-            name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
-            stem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_stem.mat')
-            nonstem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_nonstem.mat')
+        # # Caculate
+        # for well_known_gene_id in well_known_gene_ids:
+        #     name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
+        #     stem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_stem.mat')
+        #     nonstem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_nonstem.mat')
 
-            gene_ids = loadmat(name_pool_path.as_posix())['name_pool'].squeeze()
-            stem_weights = loadmat(stem_path.as_posix())['Final_reg_ability_stem']
-            nonstem_weights = loadmat(nonstem_path.as_posix())['Final_reg_ability_nonstem']
+        #     gene_ids = loadmat(name_pool_path.as_posix())['name_pool'].squeeze()
+        #     stem_weights = loadmat(stem_path.as_posix())['Final_reg_ability_stem']
+        #     nonstem_weights = loadmat(nonstem_path.as_posix())['Final_reg_ability_nonstem']
 
-            # Calculate PRV values
-            different_weights = np.abs(stem_weights - nonstem_weights)
-            prv_scores = np.zeros(len(different_weights))
-            for i in range(len(different_weights)):
-                prv_scores[i] = np.sum(different_weights[i, :])
+        #     # Calculate PRV values
+        #     different_weights = np.abs(stem_weights - nonstem_weights)
+        #     prv_scores = np.zeros(len(different_weights))
+        #     for i in range(len(different_weights)):
+        #         prv_scores[i] = np.sum(different_weights[i, :])
 
-            # Rank genes using PRV scores in descending order
-            sort_gene_ids = [gene_id.item() for gene_id in gene_ids[np.argsort(-prv_scores)]]
+        #     # Rank genes using PRV scores in descending order
+        #     sort_gene_ids = [gene_id.item() for gene_id in gene_ids[np.argsort(-prv_scores)]]
 
-            for rank_score, gene_id in enumerate(sort_gene_ids):
-                if rank_score >= len(gene_ids):
-                    rank_score = len(gene_ids) - 1
+        #     for rank_score, gene_id in enumerate(sort_gene_ids):
+        #         if rank_score >= len(gene_ids):
+        #             rank_score = len(gene_ids) - 1
 
-                gene_candidates[gene_id] = gene_candidates[gene_id] + rank_score + 1
+        #         gene_candidates[gene_id] = gene_candidates[gene_id] + rank_score + 1
 
-            sub_gene_ids = list(set(gene_candidates.keys()) - set([gene_id.item() for gene_id in gene_ids]))
+        #     sub_gene_ids = list(set(gene_candidates.keys()) - set([gene_id.item() for gene_id in gene_ids]))
 
-            for gene_id in sub_gene_ids:
-                gene_candidates[gene_id] = gene_candidates[gene_id] + len(gene_ids)
+        #     for gene_id in sub_gene_ids:
+        #         gene_candidates[gene_id] = gene_candidates[gene_id] + len(gene_ids)
 
-        chosen_gene_ids = set(well_known_gene_ids)
+        # chosen_gene_ids = set(well_known_gene_ids)
 
-        for chosen_gene_id, _ in sorted(gene_candidates.items(), key=lambda item: item[1]):
-            chosen_gene_ids.add(chosen_gene_id)
+        # for chosen_gene_id, _ in sorted(gene_candidates.items(), key=lambda item: item[1]):
+        #     chosen_gene_ids.add(chosen_gene_id)
 
-            if len(chosen_gene_ids) >= 20:
-                break
+        #     if len(chosen_gene_ids) >= 20:
+        #         break
 
-        chosen_gene_ids = [key for _, key in sorted([(gene_candidates[key], key) for key in chosen_gene_ids])]
+        
+        # chosen_gene_ids = [key for _, key in sorted([(gene_candidates[key], key) for key in chosen_gene_ids])]
+        chosen_gene_ids = well_known_gene_ids
 
         self.logger.info(f'Chosen gene ids: {" ".join(chosen_gene_ids)}')
 

@@ -10,7 +10,7 @@ class ExternalDataset(object):
     '''
     def __init__(self, project_id, download_directory, cache_directory):
         '''
-        Initialize the METABRIC instance with parameters.
+        Initialize the external instance with parameters.
 
         Needed parameters
         :param download_directory: Specify the directory for the downloaded files.

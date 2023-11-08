@@ -29,7 +29,7 @@ if __name__ == '__main__':
     project_ids = [project_metadata['id'] for project_metadata in get_filters_result_from_project(filters=project_filters, sort='summary.case_count:desc', size=100)]
 
     for project_id in project_ids:
-        TCGA_Project(project_id=project_id,
+        External_Project(project_id=project_id,
             genomic_type='tpm',
             download_directory='/'.join([download_root_directory, project_id]),
             cache_directory='/'.join([cache_root_directory, project_id]),
