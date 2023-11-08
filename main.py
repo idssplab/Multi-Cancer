@@ -4,7 +4,7 @@ import logging
 
 from mode import multi_cross_validation_bootstrap, multi_train_bootstrap
 from parse_config import ConfigParser
-from utils import set_random_seed
+from utils import set_random_seed, override_n_genes
 
 SEED = 1126
 set_random_seed(SEED)
@@ -48,28 +48,6 @@ def show_project_result(results: dict[str, dict], postfix: str):
         logging.info(f'{project_id} {postfix}')
         for key, value in project_result.items():
             logging.info('{:40s}: {:.5f} ±{:.5f}'.format(str(key).lower(), value['mean'], value['std']))
-
-
-def override_n_genes(config: ConfigParser):
-    """Override n_genes in config file.
-
-    Args:
-        config (ConfigParser): config object with muteble data structure.
-    """
-    genes = config['datasets.TCGA_BLC.args.chosen_features.gene_ids'] if 'TCGA_BLC' in config['datasets'] else None
-    try:
-        if genes is None:   # TCGA_Project_Dataset.
-            n_genes = config['models.Feature_Extractor.args.n_genes']
-        elif isinstance(genes, list):
-            n_genes = len(genes)
-        elif isinstance(genes, dict):
-            all_selected_genes = set()
-            for genes in genes.values():
-                all_selected_genes.update(genes)
-            n_genes = len(all_selected_genes)
-        config['models']['Feature_Extractor']['args']['n_genes'] = n_genes
-    except KeyError:        # No Feature_Extractor in config file or no n_genes in Feature_Extractor args.
-        pass
 
 
 if __name__ == '__main__':
