@@ -494,11 +494,14 @@ class External_Project(object):
             return df_vital_status_cache
 
         self.logger.info('Concatenating {} cases\' vital status data for {}...'.format(len(cases), self.project_id))
-        df_vital_status = pd.DataFrame()
+        # the first row is all the case ids, the second row is the value of the vital status
 
-        case_ids = self.case_ids
-        for case_id in case_ids:
-            df_vital_status = df_vital_status.join(cases[case_id]['vital_status'], how='outer')
+
+        df_vital_status = self.clinical_data_df['vital_status'].T
+
+        # case_ids = self.case_ids
+        # for case_id in case_ids:
+        #     df_vital_status = df_vital_status.join(cases[case_id]['vital_status'], how='outer')
 
         # Add the name for index
         df_vital_status.index.rename(name='vital_status', inplace=True)
@@ -536,11 +539,11 @@ class External_Project(object):
             return df_overall_survival_cache
 
         self.logger.info('Concatenating {} cases\' overall survival data for {}...'.format(len(cases), self.project_id))
-        df_overall_survival = pd.DataFrame()
+        df_overall_survival = self.clinical_data_df['overall_survival'].T
 
-        case_ids = genomic_data.columns.to_list()
-        for case_id in case_ids:
-            df_overall_survival = df_overall_survival.join(cases[case_id]['overall_survival'], how='outer')
+        # case_ids = self.case_ids
+        # for case_id in case_ids:
+        #     df_overall_survival = df_overall_survival.join(cases[case_id]['overall_survival'], how='outer')
 
         # Add the name for index
         df_overall_survival.index.rename(name='overall_survival', inplace=True)
@@ -580,12 +583,14 @@ class External_Project(object):
         self.logger.info(f'Concatenating {len(cases)} cases\' disease specific survival data for {self.project_id}...')
         df_disease_specific_survival = pd.DataFrame()
 
-        case_ids = genomic_data.columns.to_list()
-        for case_id in case_ids:
-            df_disease_specific_survival = df_disease_specific_survival.join(
-                cases[case_id]['disease_specific_survival'],
-                how='outer'
-            )
+        case_ids = self.case_ids
+        # for case_id in case_ids:
+        #     print(case_id)
+        #     df_disease_specific_survival = df_disease_specific_survival.join(
+        #         cases[case_id]['disease_specific_survival'],
+        #         how='outer'
+        #     )
+        df_disease_specific_survival = self.clinical_data_df['disease_specific_survival'].T
 
         # Add the name for index
         df_disease_specific_survival.index.rename(name='disease_specific_survival', inplace=True)
@@ -622,11 +627,11 @@ class External_Project(object):
             return df_survival_time_cache
 
         self.logger.info('Concatenating {} cases\' survival time data for {}...'.format(len(cases), self.project_id))
-        df_survival_time = pd.DataFrame()
+        df_survival_time = self.clinical_data_df['overall_survival'].T
 
-        case_ids = genomic_data.columns.to_list()
-        for case_id in case_ids:
-            df_survival_time = df_survival_time.join(cases[case_id].survival_time, how='outer')
+        # case_ids = genomic_data.columns.to_list()
+        # for case_id in case_ids:
+        #     df_survival_time = df_survival_time.join(cases[case_id].survival_time, how='outer')
 
         # Add the name for index
         df_survival_time.index.rename(name='survival_time', inplace=True)
@@ -664,11 +669,11 @@ class External_Project(object):
             return df_primary_site_cache
 
         self.logger.info('Concatenating {} cases\' primary site data for {}...'.format(len(cases), self.project_id))
-        df_primary_site = pd.DataFrame()
+        df_primary_site = self.clinical_data_df['primary_site'].T
 
-        case_ids = genomic_data.columns.to_list()
-        for case_id in case_ids:
-            df_primary_site = df_primary_site.join(cases[case_id]['primary_site'], how='outer')
+        # case_ids = genomic_data.columns.to_list()
+        # for case_id in case_ids:
+        #     df_primary_site = df_primary_site.join(cases[case_id]['primary_site'], how='outer')
 
         # Add the name for index
         df_primary_site.index.rename(name='primary_site', inplace=True)
