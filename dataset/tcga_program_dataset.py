@@ -133,6 +133,7 @@ class TCGA_Program_Dataset(BaseDataset):
         '''
         Get the data from TCGA Program
         '''
+        #not really dfs, they are lists of dfs
         df_genomics = []
         df_clinicals = []
         df_vital_statuses = []
@@ -242,7 +243,6 @@ class TCGA_Program_Dataset(BaseDataset):
 
         # NOTE: There's no missing values for the original multi-task. fillna() is only for graph dataset.
         df_genomics = pd.concat(df_genomics).fillna(0)
-
         df_clinicals = pd.concat(df_clinicals).fillna(0)
         df_vital_statuses = pd.concat(df_vital_statuses)
         df_overall_survivals = pd.concat(df_overall_survivals)
