@@ -1,4 +1,5 @@
 from preprocess.external_dataset import ExternalDataset
+from utils.external_lightningdatamodule import ExternalDataModule
 from utils.logger import setup_logging
 from pathlib import Path
 from utils.util import set_random_seed
@@ -12,6 +13,6 @@ if __name__ == '__main__':
     download_root_directory = './Data/sclc_ucologne_2015'
     cache_root_directory = './Cache/sclc_ucologne_2015'
 
-    project = ExternalDataset(project_id='sclc_ucologne_2015',
-        download_directory=download_root_directory,
+    project = ExternalDataModule(project_id='sclc_ucologne_2015',
+        data_dir=download_root_directory,
         cache_directory=cache_root_directory)

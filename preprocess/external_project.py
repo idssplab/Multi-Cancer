@@ -57,7 +57,7 @@ class External_Project(object):
 
         # create safeguard for external dataset
         
-        print('SCLC is an external dataset')
+        print('SCLC - UCologne 2015 is an external dataset')
         # Get metadata
         self.project_metadata = ""#self._get_project_metadata(project_id=self.project_id)
         
@@ -75,7 +75,7 @@ class External_Project(object):
         # Sorted case_ids
         self.case_ids = sorted(self.case_metadatas)
 
-        print('Self case ids', self.case_ids)
+        
         
 
         # Data types
@@ -312,7 +312,7 @@ class External_Project(object):
         Case is also a dictionary now 
         '''
         case_id, case = t_case        
-        print("Genetic df", self.genetic_data_df.columns)
+        #print("Genetic df", self.genetic_data_df.columns)
         # choose the row in genetic data that corresponds to the case id in the patient id column
         
         genomic_data = self.genetic_data_df[case_id]
@@ -336,13 +336,14 @@ class External_Project(object):
                 datetime.strptime(genomic_latest_file_created_date, "%Y%m%d%H%M%S"),
                 self.project_id
             ))
+            
 
             df_genomic_cache = pd.read_csv(genomic_latest_file_path, sep='\t', index_col='gene_id')
 
             return df_genomic_cache
 
         self.logger.info(f"Concatenating {len(cases)} cases' genomic {self.genomic_type} data for {self.project_id}...")
-        df_genomic = self.genetic_data_df 
+        df_genomic = self.genetic_data_df
 
         
 
@@ -375,7 +376,7 @@ class External_Project(object):
 
             df_clinical_cache = pd.read_csv(clinical_latest_file_path, sep='\t', index_col='clinical')
 
-            return df_clinical_cache
+            return df_clinical_cache.T
 
         self.logger.info('Concatenating {} cases\' clinical data for {}...'.format(len(cases), self.project_id))
         df_clinical = self.clinical_data_df
@@ -416,7 +417,7 @@ class External_Project(object):
         # the first row is all the case ids, the second row is the value of the vital status
 
 
-        df_vital_status = self.clinical_data_df['vital_status'].T
+        df_vital_status = self.clinical_data_df['vital_status']
 
         # case_ids = self.case_ids
         # for case_id in case_ids:
@@ -458,7 +459,7 @@ class External_Project(object):
             return df_overall_survival_cache
 
         self.logger.info('Concatenating {} cases\' overall survival data for {}...'.format(len(cases), self.project_id))
-        df_overall_survival = self.clinical_data_df['overall_survival'].T
+        df_overall_survival = self.clinical_data_df['overall_survival']
 
         # case_ids = self.case_ids
         # for case_id in case_ids:
@@ -502,14 +503,8 @@ class External_Project(object):
         self.logger.info(f'Concatenating {len(cases)} cases\' disease specific survival data for {self.project_id}...')
         df_disease_specific_survival = pd.DataFrame()
 
-        case_ids = self.case_ids
-        # for case_id in case_ids:
-        #     print(case_id)
-        #     df_disease_specific_survival = df_disease_specific_survival.join(
-        #         cases[case_id]['disease_specific_survival'],
-        #         how='outer'
-        #     )
-        df_disease_specific_survival = self.clinical_data_df['disease_specific_survival'].T
+        
+        df_disease_specific_survival = self.clinical_data_df['disease_specific_survival']
 
         # Add the name for index
         df_disease_specific_survival.index.rename(name='disease_specific_survival', inplace=True)
@@ -546,7 +541,7 @@ class External_Project(object):
             return df_survival_time_cache
 
         self.logger.info('Concatenating {} cases\' survival time data for {}...'.format(len(cases), self.project_id))
-        df_survival_time = self.clinical_data_df['overall_survival'].T
+        df_survival_time = self.clinical_data_df['overall_survival']
 
         # case_ids = genomic_data.columns.to_list()
         # for case_id in case_ids:
@@ -588,7 +583,7 @@ class External_Project(object):
             return df_primary_site_cache
 
         self.logger.info('Concatenating {} cases\' primary site data for {}...'.format(len(cases), self.project_id))
-        df_primary_site = self.clinical_data_df['primary_site'].T
+        df_primary_site = self.clinical_data_df['primary_site']
 
         
 

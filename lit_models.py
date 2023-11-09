@@ -70,8 +70,6 @@ class LitFullModel(pl.LightningModule):
         vital_status = torch.cat(self.step_vital_status)
         for i in torch.unique(project_id):
             mask = project_id == i
-
-
          
 
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
@@ -80,9 +78,6 @@ class LitFullModel(pl.LightningModule):
             #recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary')
             #precision, recall, thresholds = torchmetrics.functional.precision_recall_curve(outputs[mask], labels[mask], 'binary')
             cindex = concordance_index(survival_time[mask], outputs[mask], vital_status[mask])
-
-
-
 
             self.log(f'roc_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'prc_{i}', prc, on_epoch=True, on_step=False)
