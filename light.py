@@ -37,6 +37,7 @@ def main():
     filterwarnings('ignore', r'.*Skipping val loop.*')                          # Disable val loop warning.
 
     # Create dataset manager.
+    #here use torch lightning DS
     data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
     if 'TCGA_Balanced_Datasets_Manager' == config['datasets_manager']['type']:
         manager = TCGA_Balanced_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))

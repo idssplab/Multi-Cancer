@@ -97,24 +97,9 @@ class External_Project(object):
             n_threads=self.n_threads
         )
 
-        # Prepare MATLAB data
+      
         self.well_known_gene_ids = well_known_gene_ids
-        if self.well_known_gene_ids is not None:
-            if AIC_PREPROCESS:
-                self.logger.info('AIC Preprocessing')
-                self._prepare_matlab_data(
-                    genomic_data=self._genomic,
-                    well_known_gene_ids=self.well_known_gene_ids,
-                    download_directory=self.download_directory,
-                    cache_directory=self.cache_directory
-                )
 
-            if AIC_POSTPROCESS:
-                self.logger.info('AIC Postprocessing')
-                self._get_chosen_gene_ids(
-                    cache_directory=self.cache_directory,
-                    well_known_gene_ids=self.well_known_gene_ids
-                )
 
         # Clinical data
         self._clinical = self._concat_clinical_data(
@@ -276,60 +261,7 @@ class External_Project(object):
 
         return cases_file_metadatas
 
-    def _download_files(self, project_id, case_ids, extract_directory):
-        '''
-        Download the related files according to project id and case ids.
 
-        :param project_id: Specify the project id.
-        :param case_ids: Specify the case ids.
-        :param extract_directory: Specify the directory for downloading and extracting the files.
-        '''
-        # Get the file metadatas that we wanted
-        cases_file_metadatas = self._get_case_file_metadatas(project_id=project_id, case_ids=case_ids)
-
-        total_file_names = []
-        for case_id in cases_file_metadatas:
-            total_file_names.extend([file_name for file_name in cases_file_metadatas[case_id]])
-
-        # Check if the data exists
-        exist_file_names = [file_path.name for file_path in extract_directory.rglob('*') if file_path.is_file()]
-        download_file_names = list(set(total_file_names) - set(exist_file_names))
-        download_file_ids = []
-
-        for case_id in cases_file_metadatas:
-            download_file_ids.extend([
-                cases_file_metadatas[case_id][file_name]
-                for file_name in cases_file_metadatas[case_id]
-                if file_name in download_file_names
-            ])
-
-        # Download files from tcga api
-        if len(download_file_ids) == 1:
-            self.logger.info('Downloading 1 file for {}...'.format(self.project_id))
-            download_file(file_id=download_file_ids[0], extract_directory=str(extract_directory))
-        elif len(download_file_ids) > 1:
-            self.logger.info('Downloading {} files for {}...'.format(len(download_file_ids), self.project_id))
-            download_files(file_ids=download_file_ids, extract_directory=str(extract_directory))
-        else:
-            self.logger.info('All files are downloaded for {}'.format(self.project_id))
-
-        # Seperate each files into the directory, then record the path down
-        cases_file_paths = {}
-        for case_id in cases_file_metadatas:
-            file_paths = []
-            for file_name in cases_file_metadatas[case_id]:
-                file_path = extract_directory.joinpath(file_name)
-
-                if file_path.exists():
-                    new_file_path = extract_directory.joinpath(case_id, file_name)
-                    new_file_path.parent.mkdir(exist_ok=True)
-                    file_path = file_path.rename(new_file_path)
-
-                file_paths.append(extract_directory.joinpath(case_id, file_name))
-
-            cases_file_paths[case_id] = file_paths
-
-        return cases_file_paths
 
     def _create_cases(self, case_ids, directory, case_metadatas, cases_file_paths, genomic_type):
         '''
@@ -379,10 +311,8 @@ class External_Project(object):
         :param t_case: The dictionary pair of (case_id, Case).
         Case is also a dictionary now 
         '''
-        case_id, case = t_case
-        print(case_id)
-        print("Genetic df")
-        print(self.genetic_data_df.columns)
+        case_id, case = t_case        
+        print("Genetic df", self.genetic_data_df.columns)
         # choose the row in genetic data that corresponds to the case id in the patient id column
         
         genomic_data = self.genetic_data_df[case_id]
@@ -412,13 +342,9 @@ class External_Project(object):
             return df_genomic_cache
 
         self.logger.info(f"Concatenating {len(cases)} cases' genomic {self.genomic_type} data for {self.project_id}...")
-        df_genomic = pd.DataFrame()
+        df_genomic = self.genetic_data_df 
 
-        # Multiple threads
-        with ThreadPoolExecutor(max_workers=n_threads) as executor:
-            for case_id, df_case_genomic in executor.map(self._get_genomic_data_wrapper, cases.items()):
-                df_genomic = df_genomic.join(df_case_genomic, how='outer')
-        df_genomic.index.rename(name='gene_id', inplace=True)
+        
 
         # Save the result to cache directory
         df_genomic.to_csv(
@@ -452,16 +378,9 @@ class External_Project(object):
             return df_clinical_cache
 
         self.logger.info('Concatenating {} cases\' clinical data for {}...'.format(len(cases), self.project_id))
-        df_clinical = pd.DataFrame()
+        df_clinical = self.clinical_data_df
 
-        case_ids = genomic_data.iloc[2:, 0].to_list()
-        print(genomic_data.iloc[2:, 0])
-        for case_id in case_ids:
-            df_clinical = df_clinical.join(cases[case_id].clinical, how='outer')
-
-        # Add the name for index
-        df_clinical.index.rename(name='clinical', inplace=True)
-
+        
         # Save the clinical data
         df_clinical.to_csv(
             cache_directory.joinpath(f'clinical_{datetime.now().strftime("%Y%m%d%H%M%S")}.tsv'),
@@ -671,9 +590,7 @@ class External_Project(object):
         self.logger.info('Concatenating {} cases\' primary site data for {}...'.format(len(cases), self.project_id))
         df_primary_site = self.clinical_data_df['primary_site'].T
 
-        # case_ids = genomic_data.columns.to_list()
-        # for case_id in case_ids:
-        #     df_primary_site = df_primary_site.join(cases[case_id]['primary_site'], how='outer')
+        
 
         # Add the name for index
         df_primary_site.index.rename(name='primary_site', inplace=True)
@@ -687,240 +604,16 @@ class External_Project(object):
 
         return df_primary_site
 
-    def _distill_biogrid(self, download_directory, biogrid_file_name='BIOGRID-ALL-4.4.203.txt'):
-        '''
-        Distill the connections from the file download from BioGRID website.
 
-        :param download_directory: Specify the parent directory for the file download from BioGRID website.
-        :param biogrid_file_name: Specify the file name that download from BioGRID website.
-        '''
-        self.logger.info(f'Distilling {biogrid_file_name}...')
-        df_biogrid = pd.read_csv(download_directory.joinpath(f'{biogrid_file_name}'), sep='\t', low_memory=False)
-
-        mask = (df_biogrid['Organism Name Interactor A'] == 'Homo sapiens') &\
-               (df_biogrid['Organism Name Interactor B'] == 'Homo sapiens')
-        columns = ['Official Symbol Interactor A', 'Official Symbol Interactor B']
-        df_biogrid = df_biogrid[mask][columns].drop_duplicates().groupby(columns, as_index=False).size().pivot(*columns,
-                                                                                                               'size')
-
-        gene_ids = df_biogrid.index.union(df_biogrid.columns)
-        df_biogrid = df_biogrid.reindex(index=gene_ids, columns=gene_ids).fillna(0)
-        df_biogrid = (df_biogrid + df_biogrid.T) > 0
-
-        df_biogrid.columns.rename(name='', inplace=True)
-
-        return df_biogrid
-
-    # TODO: Try not to save the files
-    def _prepare_matlab_data(self, genomic_data, well_known_gene_ids, download_directory, cache_directory):
-        '''
-        Prepare all the needed files for the AIC code written in MATLAB.
-
-        :param genomic_data: The genomic data.
-        :param well_known_gene_ids: The well-known gene ids of the project.
-        :param download_directory: Specify the parent directory for the file download from BioGRID website.
-        :param cache_directory: Specify the directory for the cache files.
-        '''
-        gene_ids = genomic_data.index.to_list()
-        patient_ids = genomic_data.columns.to_list()
-
-        df_biogrid = self._distill_biogrid(download_directory=download_directory.parent.joinpath('BIOGRID'))
-
-        indices_latest_file_path = check_cache_files(cache_directory=cache_directory, regex=r'indices_*')
-
-        if indices_latest_file_path:
-            indices_latest_file_created_date = indices_latest_file_path.name.split('.')[0].split('_')[-1]
-            self.logger.info('Using indices cache files created at {} from {} for matlab data'.format(
-                datetime.strptime(indices_latest_file_created_date, "%Y%m%d%H%M%S"),
-                cache_directory
-            ))
-
-            indices_cache = np.load(indices_latest_file_path)
-            train_indices = dict(indices_cache)['train']
-
-            genomic_data = genomic_data.iloc[:, train_indices]
-
-            genomic_data.to_csv(cache_directory.joinpath('matlab_genomic.tsv'), sep='\t')
-            self.logger.info('Saving genomic data used for matlab data')
-
-        for well_known_gene_id in well_known_gene_ids:
-            cache_directory.joinpath(well_known_gene_id).mkdir(exist_ok=True)
-
-            pos_genomic_data, neg_genomic_data, pos_patient_ids, neg_patient_ids = TCGA_Project.stepminer(
-                genomic_data=genomic_data.to_numpy(),
-                well_known_gene_id=well_known_gene_id,
-                gene_ids=gene_ids,
-                patient_ids=patient_ids
-            )
-
-            anova_pos_genomic_data, anova_neg_genomic_data, anova_gene_ids = TCGA_Project.anova(
-                pos_genomic_data=pos_genomic_data,
-                neg_genomic_data=neg_genomic_data,
-                gene_ids=gene_ids
-            )
-
-            df_biogrid_saved = df_biogrid.reindex(index=anova_gene_ids, columns=anova_gene_ids).fillna(False)
-
-            self.logger.info(f'Saving MATLAB data files for {well_known_gene_id}...')
-            bind_info = {'bind': df_biogrid_saved.to_numpy(dtype=np.float64)}
-            name_pool = {'name_pool': np.asarray([np.asarray(gene) for gene in anova_gene_ids], dtype=object)}
-            ANOVA_profile_stemness = {'ANOVA_profile_stemness': anova_pos_genomic_data}
-            ANOVA_profile_nonstemness = {'ANOVA_profile_nonstemness': anova_neg_genomic_data}
-
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_bind_info.mat'),
-                    bind_info, format='5')
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat'),
-                    name_pool, format='5')
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_stemness.mat'),
-                    ANOVA_profile_stemness, format='5')
-            savemat(cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_nonstemness.mat'),
-                    ANOVA_profile_nonstemness, format='5')
             
 
 # !Need to modify in the future
     def _get_chosen_gene_ids(self, cache_directory, well_known_gene_ids):
-        '''
-        Calculate marker PRV scores and return the chosen gene ids based on built GINs.
 
-        :param cache_directory: Specify the directory for the cache files.
-        :param well_known_gene_ids: The well-known gene ids of the project.
-        '''
-        # gene_candidates = {}
-
-        # self.logger.info('Getting chosen gene ids...')
-
-        # # Initialize dictionary
-        # for well_known_gene_id in well_known_gene_ids:
-        #     name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
-        #     gene_ids = [gene_id.item() for gene_id in loadmat(name_pool_path.as_posix())['name_pool'].squeeze()]
-
-        #     for gene_id in gene_ids:
-        #         if gene_id not in gene_candidates:
-        #             gene_candidates[gene_id] = 0
-
-        # # Caculate
-        # for well_known_gene_id in well_known_gene_ids:
-        #     name_pool_path = cache_directory.joinpath(well_known_gene_id, f'{well_known_gene_id}_name_pool.mat')
-        #     stem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_stem.mat')
-        #     nonstem_path = cache_directory.joinpath(well_known_gene_id, 'Final_reg_ability_nonstem.mat')
-
-        #     gene_ids = loadmat(name_pool_path.as_posix())['name_pool'].squeeze()
-        #     stem_weights = loadmat(stem_path.as_posix())['Final_reg_ability_stem']
-        #     nonstem_weights = loadmat(nonstem_path.as_posix())['Final_reg_ability_nonstem']
-
-        #     # Calculate PRV values
-        #     different_weights = np.abs(stem_weights - nonstem_weights)
-        #     prv_scores = np.zeros(len(different_weights))
-        #     for i in range(len(different_weights)):
-        #         prv_scores[i] = np.sum(different_weights[i, :])
-
-        #     # Rank genes using PRV scores in descending order
-        #     sort_gene_ids = [gene_id.item() for gene_id in gene_ids[np.argsort(-prv_scores)]]
-
-        #     for rank_score, gene_id in enumerate(sort_gene_ids):
-        #         if rank_score >= len(gene_ids):
-        #             rank_score = len(gene_ids) - 1
-
-        #         gene_candidates[gene_id] = gene_candidates[gene_id] + rank_score + 1
-
-        #     sub_gene_ids = list(set(gene_candidates.keys()) - set([gene_id.item() for gene_id in gene_ids]))
-
-        #     for gene_id in sub_gene_ids:
-        #         gene_candidates[gene_id] = gene_candidates[gene_id] + len(gene_ids)
-
-        # chosen_gene_ids = set(well_known_gene_ids)
-
-        # for chosen_gene_id, _ in sorted(gene_candidates.items(), key=lambda item: item[1]):
-        #     chosen_gene_ids.add(chosen_gene_id)
-
-        #     if len(chosen_gene_ids) >= 20:
-        #         break
-
-        
-        # chosen_gene_ids = [key for _, key in sorted([(gene_candidates[key], key) for key in chosen_gene_ids])]
         chosen_gene_ids = well_known_gene_ids
 
         self.logger.info(f'Chosen gene ids: {" ".join(chosen_gene_ids)}')
 
-    @staticmethod
-    def stepminer(genomic_data, well_known_gene_id, gene_ids, patient_ids, error=0.5):
-        '''
-        StepMiner with error boundary.
-
-        :param genomic_data: The genomic data.
-        :param well_known_gene_ids: The well-known gene ids of the project.
-        :param gene_ids: The gene ids.
-        :param patient_ids: The patient ids.
-        :param error: The error boundary.
-        '''
-        # Select target gene/marker's expression levels
-        well_known_gene_idx = gene_ids.index(well_known_gene_id)
-        target_genomic_data = genomic_data[well_known_gene_idx, :]
-
-        target_genomic_data_sorted = np.sort(target_genomic_data)
-        num_patients = len(target_genomic_data)
-
-        # Calculate needed statistics
-        SSE = np.zeros(num_patients)
-        for i in range(num_patients):
-            if i == 0:
-                low = 0.0
-                mean_low = 0.0
-            else:
-                low = target_genomic_data_sorted[:i]
-                mean_low = np.mean(low)
-
-            if i == num_patients - 1:
-                high = 0.0
-                mean_high = 0.0
-            else:
-                high = target_genomic_data_sorted[i:]
-                mean_high = np.mean(high)
-
-            sse_low = np.sum(np.square(low - mean_low))
-            sse_high = np.sum(np.square(high - mean_high))
-            SSE[i] = sse_low + sse_high
-
-        # Select cut point and derive the threshold
-        cut_point = np.argmin(SSE)
-        low = np.mean(target_genomic_data_sorted[:cut_point])
-        high = np.mean(target_genomic_data_sorted[cut_point:])
-        threshold = (low + high) / 2
-
-        # Remove samples that are close to threshold within +-`error` range and separate all samples to two groups:
-        # pos/neg (stemness/nonstemness)
-        pos_genomic_data = genomic_data[:, target_genomic_data > (threshold + error)]
-        pos_patient_ids = itemgetter(*np.argwhere(target_genomic_data > (threshold + error)).squeeze())(patient_ids)
-        neg_genomic_data = genomic_data[:, target_genomic_data < (threshold - error)]
-        neg_patient_ids = itemgetter(*np.argwhere(target_genomic_data < (threshold - error)).squeeze())(patient_ids)
-
-        return pos_genomic_data, neg_genomic_data, pos_patient_ids, neg_patient_ids
-
-    @staticmethod
-    def anova(pos_genomic_data, neg_genomic_data, gene_ids, p_val=0.05):
-        '''
-        Use ANOVA to select differentially-expressed genes with threshold of p-value.
-
-        :param pos_genomic_data: The genomic data of the positive group that selected from StepMiner.
-        :param neg_genomic_data: The genomic data of the negative group that selected from StepMiner.
-        :param gene_ids: The gene ids.
-        :param p_val: The threshold of the p-value.
-        '''
-        num_genes = len(gene_ids)
-        p_values = np.zeros(num_genes)
-        for i in range(num_genes):
-            if pos_genomic_data[i, :].sum() > 0 and neg_genomic_data[i, :].sum() > 0:
-                p_values[i] = f_oneway(pos_genomic_data[i, :], neg_genomic_data[i, :])[1]
-            else:
-                p_values[i] = np.inf
-
-        p_value_idx = np.argwhere(p_values < p_val).squeeze()
-
-        anova_pos_genomic_data = pos_genomic_data[p_values < p_val, :]
-        anova_neg_genomic_data = neg_genomic_data[p_values < p_val, :]
-        anova_gene_ids = itemgetter(*p_value_idx)(gene_ids)
-
-        return anova_pos_genomic_data, anova_neg_genomic_data, anova_gene_ids
 
     @property
     def genomic(self):

@@ -3,6 +3,8 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 from utils.util import check_cache_files
+import pytorch_lightning as pl
+import pandas as pd
 
 class ExternalDataset(object):
     '''
@@ -291,3 +293,50 @@ class ExternalDataset(object):
         Return the 5 year disease specific survival data.
         '''
         return self._disease_specific_survival
+        import torch.utils.data as data
+
+class ExternalDataModule(pl.LightningDataModule):
+    def __init__(self, data_dir, batch_size, num_workers):
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+    def prepare_data(self):
+        # Download the necessary data files
+        pass
+
+    def setup(self, stage=None):
+        # Load the data files and split them into train, validation, and test sets
+        pass
+
+    def DataLoader(self, data, shuffle=True):
+        return data.DataLoader(
+            data,
+            batch_size=self.batch_size,
+            shuffle=shuffle,
+            num_workers=self.num_workers,
+            collate_fn=self.collate_fn,
+            prepare_batch=self.prepare_batch
+        )
+
+    def train_dataloader(self):
+        return self.DataLoader(self.train_data, shuffle=True)
+
+    def val_dataloader(self):
+        return self.DataLoader(self.val_data, shuffle=False)
+
+    def test_dataloader(self):
+        return self.DataLoader(self.test_data, shuffle=False)
+
+    def collate_fn(self, batch):
+        # Customize how the data is collated into batches
+        pass
+
+    def prepare_batch(self, batch):
+        # Customize how the data is prepared for the model
+        pass
+
+    def teardown(self, stage=None):
+        # Clean up any resources used by the data module
+        pass
