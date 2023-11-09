@@ -24,11 +24,12 @@ class ExternalDataModule(pl.LightningDataModule):
         self.train_data = None
         self.val_data = None
         self.test_data = None
-        self.logger = get_logger('preprocess.tcga_program_dataset')
+        self.logger = get_logger('preprocess.tcga_program_dataset')       
         
 
-        self.chosen_project_gene_ids = chosen_features.get('gene_ids', {})
-
+        
+        self.get_chosen_features(chosen_features)
+               
 
         # Specify the genomic type (use graph or not).
         self.graph_dataset = graph_dataset
@@ -43,7 +44,12 @@ class ExternalDataModule(pl.LightningDataModule):
 
 
 
-
+    def get_chosen_features(self, chosen_features):
+        # Get chosen features             
+        self.chosen_project_gene_ids = chosen_features.get('gene_ids', {})
+        self.chosen_clinical_numerical_ids: list = chosen_features.get('clinical_numerical_ids', [])
+        self.chosen_clinical_categorical_ids = chosen_features.get('clinical_categorical_ids', [])
+        self.chosen_clinical_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
     def prepare_data(self):
         # Download the necessary data files
@@ -78,7 +84,8 @@ class ExternalDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Load the data files and split them into train, validation, and test sets
         #this dataset is only for testing 
-        self.test_data =  
+        #self.test_data =  
+        pass
 
     def DataLoader(self, data, shuffle=True):
         return data.DataLoader(
