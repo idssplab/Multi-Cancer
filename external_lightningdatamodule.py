@@ -7,6 +7,8 @@ from utils.util import check_cache_files
 import numpy as np
 from torch import from_numpy
 import dgl
+import torch
+import shutil
 
 
 class ExternalDataModule(pl.LightningDataModule):
@@ -20,6 +22,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.project_id = project_id
         self.target_type = 'overall_survival'
         self.n_threads = 1
+        self.chosen_features = chosen_features
 
         self.genomic_type = 'tpm'
         self.genomic_data = None
@@ -76,29 +79,23 @@ class ExternalDataModule(pl.LightningDataModule):
         # Download the necessary data files
         # load sclc_ucologne_2015 data
         self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm.csv', header=1, sep=',')
-        #print("genomic data",self.genomic_data.columns)
+       
         
         self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.tsv', header=0, sep='\t')
+        #PATIENT_ID	gender	ethnicity	race	year_of_diagnosis	year_of_birth	
+        # overall_survival	vital_status	disease_specific_survival	primary_site
         #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         self.overall_survivals = self.clinical_data['overall_survival']
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival']
         self.primary_sites = self.clinical_data['primary_site']
+        self
 
-        df_genomics = []
-        df_clinicals = []
-        df_vital_statuses = []
-        df_overall_survivals = []
-        df_disease_specific_survivals = []
-        df_survival_times = []
-        df_primary_sites = []
-        df_project_ids = []
-        train_patient_ids = []
-        test_patient_ids = []
+
     
     def get_patient_ids(self):
         # Get the patient IDs
         self.patient_ids = np.unique(self.clinical_data['PATIENT_ID'])
-        #print(self.patient_ids)
+        print(type(self.patient_ids))
         self.logger.info('Total {} patients'.format(len(self.patient_ids)))
 
     def get_clinical_ids(self):
@@ -202,14 +199,27 @@ class ExternalDataModule(pl.LightningDataModule):
 
 
     def DataLoader(self, data, shuffle=True):
+        #DataLoader uses both the dataset and a sampler to determine the sequence of data loading.
+        #The sampler is optional, but it allows you to specify the order indices are presented to your model.
+        #The dataset is required and specifies the data elements that will be loaded.
+        #The DataLoader class is used to wrap an existing Dataset during training and provides
+        #additional utility methods to iterate through the data.
+
+        # the data corresponds to the clinical and genomic data
+        # the target corresponds to the vital_status
+
+        
+
         return data.DataLoader(
             data,
             batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn,
-            prepare_batch=self.prepare_batch
+            pin_memory=True,
         )
+
+
 
     def train_dataloader(self):
         return self.DataLoader(self.train_data, shuffle=True)
@@ -222,15 +232,47 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def collate_fn(self, batch):
         # Customize how the data is collated into batches
-        pass
+        # Unzip the data_list into two lists containing the two types of tuples
+        graph_data_list, target_data_list = zip(*batch)
+        # Unzip each list of tuples into separate lists
+
+        graphs, clinicals, indices, project_ids = zip(*graph_data_list)
+        targets, overall_survivals, vital_statuses = zip(*target_data_list)
+
+        batched_graphs = batch(graphs)
+        batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
+        batch_indices = torch.tensor(indices)
+        batch_project_ids = torch.tensor(project_ids)
+        batch_targets = torch.tensor(targets)
+        batch_overall_survivals = torch.tensor(overall_survivals)
+        batch_vital_statuses = torch.tensor(vital_statuses)
+        return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
+                (batch_targets, batch_overall_survivals, batch_vital_statuses))
+        
 
     def prepare_batch(self, batch):
         # Customize how the data is prepared for the model
-        pass
+        #The batches have this shape
+        #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+
+        # Unpack the batch
+        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        
+        # Convert the data to PyTorch tensors
+        genomic = torch.from_numpy(genomic).float()
+        clinical = torch.from_numpy(clinical).float()
+        index = torch.tensor(index).long()
+        project_id = torch.tensor(project_id).long()
+        overall_survival = torch.tensor(overall_survival).float()
+        survival_time = torch.tensor(survival_time).float()
+        vital_status = torch.tensor(vital_status).float()
+        
+        return (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status)
 
     def teardown(self, stage=None):
         # Clean up any resources used by the data module
-        pass
+        if stage == 'fit' or stage is None:
+            shutil.rmtree(self.cache_directory)
 
 # test that the module works
 
