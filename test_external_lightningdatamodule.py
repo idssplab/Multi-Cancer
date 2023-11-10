@@ -60,15 +60,15 @@ def test_setup(data_module):
     assert isinstance(data_module.val_data, pd.DataFrame)
     assert isinstance(data_module.test_data, pd.DataFrame)
 
-def test_train_dataloader(data_module):
-    data_module.setup()
-    train_dataloader = data_module.train_dataloader()
-    assert isinstance(train_dataloader, DataLoader)
+# def test_train_dataloader(data_module):
+#     data_module.setup()
+#     train_dataloader = data_module.train_dataloader()
+#     assert isinstance(train_dataloader, DataLoader)
 
-def test_val_dataloader(data_module):
-    data_module.setup()
-    val_dataloader = data_module.val_dataloader()
-    assert isinstance(val_dataloader, DataLoader)
+# def test_val_dataloader(data_module):
+#     data_module.setup()
+#     val_dataloader = data_module.val_dataloader()
+#     assert isinstance(val_dataloader, DataLoader)
 
 def test_test_dataloader(data_module):
     data_module.setup()

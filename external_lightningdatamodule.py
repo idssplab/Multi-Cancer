@@ -24,6 +24,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.n_threads = 1
         self.chosen_features = chosen_features
 
+        self.data = None
         self.genomic_type = 'tpm'
         self.genomic_data = None
         self.clinical_data = None
@@ -156,6 +157,17 @@ class ExternalDataModule(pl.LightningDataModule):
             ) * 100
         ))
 
+    def concat_data(self):
+        # Concatenate the genomic and clinical data , having the genes and clinical features as columns
+        
+        self.data = pd.merge(self.clinical_data, self.genomic_data , axis=0, index =0)
+        print(self.data.columns)
+        #print(self.data.i)
+        self.data = self.data.set_index(0)
+        self.data = self.data.loc[self.patient_ids]
+        #self.data = self.data.reset_index()
+        self.logger.info('Total {} samples'.format(len(self.data)))
+
     
 
     def setup(self, stage=None):
@@ -165,9 +177,10 @@ class ExternalDataModule(pl.LightningDataModule):
         self.get_chosen_features(self.chosen_features)
         self.log_data_info()
         self.normalize_clinical_data()
+        self.concat_data()
         self.split_data()
 
-    def split_data(self, only_test = False):
+    def split_data(self, only_test = True):
             # Split the data into train, validation, and test sets
             if not only_test:
                 self.logger.info('Splitting data into train, validation, and test sets...')
@@ -187,14 +200,8 @@ class ExternalDataModule(pl.LightningDataModule):
                 self.test_data = pd.concat(test_data)
             else:
                 self.logger.info('Splitting data into test set...')
-                test_data = []
-                for project_id in self.project_id:
-                    project_data = self.data[self.data['project_id'] == project_id]
-                    project_data = project_data.sample(frac=1, random_state=self.random_state)
-                    num_samples = len(project_data)
-                    num_test_samples = num_samples
-                    test_data.append(project_data.iloc[num_test_samples:])
-                self.test_data = pd.concat(test_data)
+                # (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+                self.test_data = self.data
         
 
 
@@ -278,3 +285,10 @@ class ExternalDataModule(pl.LightningDataModule):
 
 if __name__ == '__main__':
     data_module = ExternalDataModule(project_id='SCLC', data_dir='Data/sclc_ucologne_2015', cache_directory='cache', batch_size=32, num_workers=4, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0)
+    #test concat_data
+    data_module.concat_data()
+    
+    # test setup
+    data_module.setup()
+    # test test_dataloader
+    test_dataloader = data_module.test_dataloader()
