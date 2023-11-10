@@ -75,7 +75,9 @@ class ExternalDataModule(pl.LightningDataModule):
     def prepare_data(self):
         # Download the necessary data files
         # load sclc_ucologne_2015 data
-        self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm.tsv', header=0, sep='\t')
+        self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm.csv', header=1, sep=',')
+        #print("genomic data",self.genomic_data.columns)
+        
         self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.tsv', header=0, sep='\t')
         #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         self.overall_survivals = self.clinical_data['overall_survival']
@@ -104,7 +106,6 @@ class ExternalDataModule(pl.LightningDataModule):
         #print(self.clinical_features)
     
     def get_genomic_ids(self):
-        print(self.genomic_data.columns)
         self.genomic_features = self.genomic_data.columns
 
     def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
@@ -163,8 +164,42 @@ class ExternalDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Load the data files and split them into train, validation, and test sets
         #this dataset is only for testing 
-        #self.test_data =  
-        pass
+        self.prepare_data()
+        self.get_chosen_features(self.chosen_features)
+        self.log_data_info()
+        self.normalize_clinical_data()
+        self.split_data()
+
+    def split_data(self, only_test = False):
+            # Split the data into train, validation, and test sets
+            if not only_test:
+                self.logger.info('Splitting data into train, validation, and test sets...')
+                train_data, val_data, test_data = [], [], []
+                for project_id in self.project_id:
+                    project_data = self.data[self.data['project_id'] == project_id]
+                    project_data = project_data.sample(frac=1, random_state=self.random_state)
+                    num_samples = len(project_data)
+                    num_train_samples = int(num_samples * self.train_ratio)
+                    num_val_samples = int(num_samples * self.val_ratio)
+                    num_test_samples = num_samples - num_train_samples - num_val_samples
+                    train_data.append(project_data.iloc[:num_train_samples])
+                    val_data.append(project_data.iloc[num_train_samples:num_train_samples + num_val_samples])
+                    test_data.append(project_data.iloc[num_train_samples + num_val_samples:])
+                self.train_data = pd.concat(train_data)
+                self.val_data = pd.concat(val_data)
+                self.test_data = pd.concat(test_data)
+            else:
+                self.logger.info('Splitting data into test set...')
+                test_data = []
+                for project_id in self.project_id:
+                    project_data = self.data[self.data['project_id'] == project_id]
+                    project_data = project_data.sample(frac=1, random_state=self.random_state)
+                    num_samples = len(project_data)
+                    num_test_samples = num_samples
+                    test_data.append(project_data.iloc[num_test_samples:])
+                self.test_data = pd.concat(test_data)
+        
+
 
     def DataLoader(self, data, shuffle=True):
         return data.DataLoader(
