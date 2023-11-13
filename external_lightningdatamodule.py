@@ -10,6 +10,7 @@ import dgl
 import torch
 import shutil
 from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data.dataloader import default_collate
 
 
 
@@ -93,7 +94,7 @@ class ExternalDataModule(pl.LightningDataModule):
         #PATIENT_ID	gender	ethnicity	race	year_of_diagnosis	year_of_birth	
         # overall_survival	vital_status	disease_specific_survival	primary_site
         #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
-        print(self.clinical_data.columns)
+        #print(self.clinical_data.columns)
         self.overall_survivals = self.clinical_data.overall_survival
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival']
         self.primary_sites = self.clinical_data['primary_site']
@@ -230,7 +231,7 @@ class ExternalDataModule(pl.LightningDataModule):
         #convert them to tensor
         data = self.test_data
 
-        # print(self.test_data.dtypes)
+        print(self.test_data.dtypes)
         # # Check which columns are object type
         object_cols = data.select_dtypes(include=['object']).columns
 
@@ -277,24 +278,29 @@ class ExternalDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return self.DataLoader(self.test_data, shuffle=False)
 
-    def collate_fn(self, batch):
+    def collate_fn(self, batch, graph_dataset=False):
         # Customize how the data is collated into batches
         # Unzip the data_list into two lists containing the two types of tuples
-        graph_data_list, target_data_list = zip(*batch)
-        # Unzip each list of tuples into separate lists
 
-        graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-        targets, overall_survivals, vital_statuses = zip(*target_data_list)
+        if graph_dataset:
+            graph_data_list, target_data_list = zip(*batch)     
+            graphs, clinicals, indices, project_ids = zip(*graph_data_list)
 
-        batched_graphs = batch(graphs)
-        batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-        batch_indices = torch.tensor(indices)
-        batch_project_ids = torch.tensor(project_ids)
-        batch_targets = torch.tensor(targets)
-        batch_overall_survivals = torch.tensor(overall_survivals)
-        batch_vital_statuses = torch.tensor(vital_statuses)
-        return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
-                (batch_targets, batch_overall_survivals, batch_vital_statuses))
+
+            targets, overall_survivals, vital_statuses = zip(*target_data_list)
+
+            batched_graphs = batch(graphs)
+            batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
+            batch_indices = torch.tensor(indices)
+            batch_project_ids = torch.tensor(project_ids)
+            batch_targets = torch.tensor(targets)
+            batch_overall_survivals = torch.tensor(overall_survivals)
+            batch_vital_statuses = torch.tensor(vital_statuses)
+            return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
+                    (batch_targets, batch_overall_survivals, batch_vital_statuses))
+        else:
+            # use default collate_fn
+            return default_collate(batch)
         
 
     def prepare_batch(self, batch):

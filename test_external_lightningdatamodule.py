@@ -22,12 +22,12 @@ def data_module():
         project_id=['SCLC'],
         data_dir='Data/sclc_ucologne_2015',
         cache_directory='Cache/SCLC',
-        batch_size=32,
+        batch_size=128,
         num_workers=4,
         chosen_features={
-            'gene_ids': {'ENSG00000141510', 'ENSG00000141510'},
-            'clinical_numerical_ids': ['overall_survival',  'vital_status'],
-            'clinical_categorical_ids': ['gender']
+            'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'},
+            'clinical_numerical_ids': ['overall_survival',  'vital_status','age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'],
+            'clinical_categorical_ids': ['gender', 'race', 'ethnicity']
         },
         graph_dataset=False,
         ppi_score_name='escore',
@@ -86,6 +86,7 @@ def test_test_dataloader(data_module):
     data_module.setup()
     test_dataloader = data_module.test_dataloader()
     assert isinstance(test_dataloader, DataLoader)
+    print(isinstance(test_dataloader, DataLoader))
 
 
 def main_test():
@@ -112,12 +113,37 @@ def main_test():
    
     
     #add the external data
-    external_testing_data = ExternalDataModule(**config['external_datasets'])
+    #external_testing_data = ExternalDataModule(**config['external_datasets'])
+
+    external_testing_data = ExternalDataModule(
+        project_id=['SCLC'],
+        data_dir='Data/sclc_ucologne_2015',
+        cache_directory='Cache/SCLC',
+        batch_size=128,
+        num_workers=4,
+        chosen_features={
+            'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'},
+            'clinical_numerical_ids': ['overall_survival',  'vital_status','age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'],
+            'clinical_categorical_ids': ['gender', 'race', 'ethnicity']
+        },
+        graph_dataset=False,
+        ppi_score_name='escore',
+        ppi_score_threshold=0.0
+    )
+    external_testing_data.setup()
      #project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
     # graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0
+    test = external_testing_data.test_dataloader()
+    
+    # test iterating through the dataloader and check that it is not empty
+    for i, batch in enumerate(test):
+        print(i)
+        print(batch)
+        assert len(batch) > 0
 
 if __name__ == '__main__':
     #pytest.main(['-sv', __file__])
     main_test()
+
 
     

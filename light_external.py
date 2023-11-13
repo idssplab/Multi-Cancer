@@ -44,7 +44,28 @@ def main():
    
     
     #add the external data
-    external_testing_data = ExternalDataModule(**config['external_datasets'])
+    #external_testing_data = ExternalDataModule(**config['external_datasets'])
+    external_testing_data =ExternalDataModule(
+        project_id=['SCLC'],
+        data_dir='Data/sclc_ucologne_2015',
+        cache_directory='Cache/SCLC',
+        batch_size=128,
+        num_workers=4,
+        chosen_features={
+            'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'},
+            'clinical_numerical_ids': ['overall_survival',  'vital_status','age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'],
+            'clinical_categorical_ids': ['gender', 'race', 'ethnicity']
+        },
+        graph_dataset=False,
+        ppi_score_name='escore',
+        ppi_score_threshold=0.0
+    )
+
+    external_testing_data.setup()
+
+
+
+    external_testing_dataloader = external_testing_data.test_dataloader()
     #project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
     # graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0
     if 'TCGA_Balanced_Datasets_Manager' == config['datasets_manager']['type']:
@@ -52,7 +73,8 @@ def main():
     else:
         manager = TCGA_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
 
-    # Cross validation
+    # Cross validation, adapt the code for tensting on the external dataset batches
+    # still need to create he proper shuffling of the data
     for key, values in manager['TCGA_BLC']['dataloaders'].items():
         if isinstance(key, int) and config['cross_validation']:
             models, optimizers = create_models_and_optimizers(config)
@@ -66,12 +88,13 @@ def main():
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
             trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
-            trainer.test(lit_model, dataloaders=external_testing_data, verbose=False)
+            #trainer.test(lit_model, dataloaders=external_testing_data.test_dataloader, verbose=False)
+            
             
         elif key == 'train':
             train = values
         elif key == 'test':
-            test = values
+            test = external_testing_dataloader
 
     # Train the final model.
     models, optimizers = create_models_and_optimizers(config)
