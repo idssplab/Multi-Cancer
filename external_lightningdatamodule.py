@@ -26,6 +26,8 @@ class ExternalDataModule(pl.LightningDataModule):
         self.target_type = 'overall_survival'
         self.n_threads = 1
         self.chosen_features = chosen_features
+        self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
 
  
 
@@ -40,6 +42,13 @@ class ExternalDataModule(pl.LightningDataModule):
         self.disease_specific_survivals = None
         self.primary_sites = None
         self.primary_site_ids = 0 # this will need to change
+        self.vital_status = None
+
+        self._genomics = None
+        self._clinicals = None
+        self.targets =  None
+        self._survival_times =  None
+        self._vital_statuses =  None
 
 
         self.train_data = None
@@ -100,7 +109,14 @@ class ExternalDataModule(pl.LightningDataModule):
         self.overall_survivals = self.clinical_data.overall_survival
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival']
         self.primary_sites = self.clinical_data['primary_site']
-        self
+        self.vital_status = self.clinical_data['vital_status']
+        
+
+        
+
+
+    def __getitem__(self, index):
+        return (self._genomics[index], self._clinicals[index], index, 0), (self.targets[index], self._survival_times[index], self._vital_statuses[index])
 
 
     
@@ -145,11 +161,17 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
-        #print('chosen categorical ids', self.chosen_clinical_categorical_ids)
-        #print('chosen clinical cols',self.clinical_data[self.chosen_clinical_categorical_ids].head())
-        self.clinical_data = self.clinical_data.reindex(
-                        columns=self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
-                    ).fillna(0)
+        print('clinical data', self.clinical_data.columns)
+        
+        # print('chosen categorical ids', self.chosen_clinical_categorical_ids)
+        # print('chosen clinical cols',self.clinical_data[self.chosen_clinical_categorical_ids].head())
+        
+        # self.clinical_data = self.clinical_data.reindex(
+        #                 columns=self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
+        #             ).fillna(0)
+        #delete columns with object type
+        self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
+
         
 
     def log_data_info(self):
@@ -176,6 +198,9 @@ class ExternalDataModule(pl.LightningDataModule):
         
         
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
+
+        #get rid of object type columns
+        self.data = self.data.select_dtypes(exclude=['object'])
         
         
         self.logger.info('Total {} samples'.format(len(self.data)))
@@ -191,6 +216,21 @@ class ExternalDataModule(pl.LightningDataModule):
         self.normalize_clinical_data()
         self.concat_data()
         self.split_data()
+        self.create_tensors()
+
+    def create_tensors(self):
+        # if any column is object type, print names of columns with object type
+        dtypes = self.genomic_data.dtypes
+        object_cols = dtypes[dtypes == 'object'].index
+        print(object_cols)
+        #get rid of the ID column
+        self.genomic_data = self.genomic_data.drop(columns=['gene_id'])
+
+        self._genomics = torch.tensor(self.genomic_data.values, dtype=torch.float32)
+        self._clinicals = torch.tensor(self.clinical_data.values, dtype=torch.float32)
+        self.targets = torch.tensor(self.overall_survivals.values, dtype=torch.float32)
+        self._survival_times = torch.tensor(self.disease_specific_survivals.values, dtype=torch.float32)
+        self._vital_statuses = torch.tensor(self.vital_status.values, dtype=torch.float32)
 
     def split_data(self, only_test = True):
             # Split the data into train, validation, and test sets
@@ -217,9 +257,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
 
 
-    def DataLoader(self, data, shuffle=True, batch_size = 128,  
-                               graph_dataset=False, collate_fn= default_collate,
-                               pin_memory=True, num_workers=4):
+    def DataLoader(self, data, shuffle=True):
         
 
         # the data corresponds to the clinical and genomic data
@@ -261,6 +299,9 @@ class ExternalDataModule(pl.LightningDataModule):
         # Create a TensorDataset from the tensors
         dataset = TensorDataset(features)
 
+        features = torch.tensor(data[self.clinical_features + self.genomic_features].values, dtype=torch.float32)
+        targets = torch.tensor(data[self.overall_survivals].values, dtype=torch.float32)
+
         # Create a DataLoader from the TensorDataset
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
@@ -280,9 +321,7 @@ class ExternalDataModule(pl.LightningDataModule):
         return self.DataLoader(self.val_data, shuffle=False)
 
     def test_dataloader(self):
-        return self.DataLoader(self.test_data,  batch_size=self.batch_size, shuffle=False, 
-                               graph_dataset=self.graph_dataset, collate_fn=self.collate_fn,
-                               pin_memory=self.pin_memory, num_workers=self.num_workers)
+        return self.DataLoader(self.test_data, shuffle=False, )
 
     def collate_fn(self, batch, graph_dataset=False):
         # Customize how the data is collated into batches
@@ -291,8 +330,6 @@ class ExternalDataModule(pl.LightningDataModule):
         if graph_dataset:
             graph_data_list, target_data_list = zip(*batch)     
             graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-
-
             targets, overall_survivals, vital_statuses = zip(*target_data_list)
 
             batched_graphs = batch(graphs)
@@ -305,9 +342,30 @@ class ExternalDataModule(pl.LightningDataModule):
             return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
                     (batch_targets, batch_overall_survivals, batch_vital_statuses))
         else:
-            # use default collate_fn
+            print('Using non graph dataset collate function')
+            # gene_data_list, target_data_list = zip(*batch)  
+            # genes, clinicals, indices, project_ids = zip(*gene_data_list)
+            # targets, overall_survivals, vital_statuses = zip(*target_data_list)
+
+
+            # batched_genes = torch.tensor(genes)
+            # batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
+            # batch_indices = torch.tensor(indices)
+            # batch_project_ids = torch.tensor(project_ids)
+            # batch_targets = torch.tensor(targets)
+            # batch_overall_survivals = torch.tensor(overall_survivals)
+            # batch_vital_statuses = torch.tensor(vital_statuses)
+            # return ((batched_genes, batch_clinicals, batch_indices, batch_project_ids),
+            #         (batch_targets, batch_overall_survivals, batch_vital_statuses))
             return default_collate(batch)
         
+
+    def __getitem__(self, index):
+        '''
+        Support the indexing of the dataset
+        '''
+        return ((self._genomics[index], self._clinicals[index], index, 0),
+                (self.targets[index], self._survival_times[index], self._vital_statuses[index]))  
 
     def prepare_batch(self, batch):
         # Customize how the data is prepared for the model
