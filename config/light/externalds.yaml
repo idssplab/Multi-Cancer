@@ -28,9 +28,6 @@ models:
     output_dim: 1
 
 datasets:
-  external:
-    project_ids: [SCLC]
-    gene_ids: ['TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D']
   project_ids: [TCGA-BRCA, TCGA-LUAD, TCGA-COAD]
   chosen_features:
     gene_ids:
@@ -47,6 +44,15 @@ datasets:
   target_type: overall_survival
   genomic_type: tpm
   n_threads: 16
+
+external_datasets:
+    project_id: [SCLC]
+    chosen_features: 
+      gene_ids: ['TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D']
+    data_dir: Data/sclc_ucologne_2015/
+    cache_directory: Cache/SCLC/
+    num_workers: 4
+    batch_size: 128
 
 datasets_manager:
   type: TCGA_Balanced_Datasets_Manager

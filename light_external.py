@@ -40,8 +40,13 @@ def main():
     # Create dataset manager.
     #here use torch lightning DS
     data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
+    
+   
+    
     #add the external data
-    external_testing_data = ExternalDataModule(**config['datasets'])
+    external_testing_data = ExternalDataModule(**config['external_datasets'])
+    #project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
+    # graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0
     if 'TCGA_Balanced_Datasets_Manager' == config['datasets_manager']['type']:
         manager = TCGA_Balanced_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
     else:
@@ -61,6 +66,7 @@ def main():
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
             trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
+            trainer.test(lit_model, dataloaders=external_testing_data, verbose=False)
             
         elif key == 'train':
             train = values

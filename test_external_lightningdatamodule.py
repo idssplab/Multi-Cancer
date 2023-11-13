@@ -3,6 +3,18 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from external_lightningdatamodule import ExternalDataModule
 import numpy as np
+import argparse
+from utils import config_add_subdict_key, get_logger, override_n_genes, set_random_seed, setup_logging
+import yaml
+from tqdm import tqdm
+import argparse
+from datetime import datetime
+from pathlib import Path
+from warnings import filterwarnings
+
+
+SEED = 1126
+set_random_seed(SEED)
 
 @pytest.fixture
 def data_module():
@@ -76,10 +88,36 @@ def test_test_dataloader(data_module):
     assert isinstance(test_dataloader, DataLoader)
 
 
+def main_test():
+    # Select a config file.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=str, help='Path to the config file.', required=True)
+    args = parser.parse_args()
+    with open(args.config, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    override_n_genes(config)                                                    # For multi-task graph models.
+    config_name = Path(args.config).stem
 
+    # Setup logging.
+    setup_logging(log_path := f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/')
+    logger = get_logger(config_name)
+    logger.info(f'Using Random Seed {SEED} for this experiment')
+    get_logger('lightning.pytorch.accelerators.cuda', log_level='WARNING')      # Disable cuda logging.
+    filterwarnings('ignore', r'.*Skipping val loop.*')                          # Disable val loop warning.
+
+    # Create dataset manager.
+    #here use torch lightning DS
+   
+    
+   
+    
+    #add the external data
+    external_testing_data = ExternalDataModule(**config['external_datasets'])
+     #project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
+    # graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0
 
 if __name__ == '__main__':
-    pytest.main(['-sv', __file__])
-    
+    #pytest.main(['-sv', __file__])
+    main_test()
 
     
