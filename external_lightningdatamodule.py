@@ -13,6 +13,32 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataloader import default_collate
 
 
+# Create a TensorDataset from the tensors
+class CustomDataset(torch.utils.data.Dataset):
+    def __init__(self, data, genomic_features, clinical_features):
+        self.data = data
+        self.genomic_features = genomic_features
+        self.clinical_features = clinical_features
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+            # Assuming self.data is a pandas DataFrame
+            row = self.data.iloc[index]
+            genomic = row[self.genomic_features]
+            clinical = row[self.clinical_features]
+            index = index#row['PATIENT_ID']
+            project_id = row['project_id']
+            overall_survival = row['overall_survival']
+            survival_time = row['survival_time']
+            vital_status = row['vital_status']
+            
+            return (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status)
+
+
+
+
 
 class ExternalDataModule(pl.LightningDataModule):
     def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0):
@@ -28,6 +54,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.chosen_features = chosen_features
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
+        self.all_clinical_feature_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
  
 
@@ -131,7 +158,7 @@ class ExternalDataModule(pl.LightningDataModule):
         #print(self.clinical_features)
     
     def get_genomic_ids(self):
-        self.genomic_features = self.genomic_data.columns
+        self.genomic_features = self.genomic_data.columns[1:]
 
     def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
         src = from_numpy(df_ppi['src'].to_numpy())
@@ -162,15 +189,9 @@ class ExternalDataModule(pl.LightningDataModule):
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
         print('clinical data', self.clinical_data.columns)
-        
-        # print('chosen categorical ids', self.chosen_clinical_categorical_ids)
-        # print('chosen clinical cols',self.clinical_data[self.chosen_clinical_categorical_ids].head())
-        
-        # self.clinical_data = self.clinical_data.reindex(
-        #                 columns=self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
-        #             ).fillna(0)
-        #delete columns with object type
+
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
+        self.all_clinical_feature_ids = self.clinical_data.columns
 
         
 
@@ -199,9 +220,13 @@ class ExternalDataModule(pl.LightningDataModule):
         
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
 
+        self.data['overall_survival'] = self.overall_survivals
+        self.data['survival_time'] = self.disease_specific_survivals
+        self.data['vital_status'] = self.vital_status
+        self.data['project_id'] = self.project_id
+
         #get rid of object type columns
-        self.data = self.data.select_dtypes(exclude=['object'])
-        
+        self.data = self.data.select_dtypes(exclude=['object'])       
         
         self.logger.info('Total {} samples'.format(len(self.data)))
 
@@ -260,53 +285,40 @@ class ExternalDataModule(pl.LightningDataModule):
     def DataLoader(self, data, shuffle=True):
         
 
-        # the data corresponds to the clinical and genomic data
-        # the target corresponds to the vital_status
-        # Assuming self.test_data is a pandas DataFrame
-        # Convert DataFrame to tensors
-        #! Temporary solution
-
-    
-        #check which columns are object type
-        #select the columns that are object type
-        #convert them to categorical
-        #convert them to tensor
         data = self.test_data
 
-        print(self.test_data.dtypes)
-        # # Check which columns are object type
-        object_cols = data.select_dtypes(include=['object']).columns
+        # print(self.test_data.dtypes)
+        # # # Check which columns are object type
+        # object_cols = data.select_dtypes(include=['object']).columns
 
-        # Select the columns that are object type
-        df_object = data[object_cols]
+        # # Select the columns that are object type
+        # df_object = data[object_cols]
 
         
 
-        df_object = df_object.astype('category')
+        # df_object = df_object.astype('category')
 
-        #incorporate the categorical columns into the dataframe
-        data[object_cols] = df_object
+        # #incorporate the categorical columns into the dataframe
+        # data[object_cols] = df_object
 
-        # Use one hot encoding to convert the categorical columns to numerical
+        # # Use one hot encoding to convert the categorical columns to numerical
         
-        data = pd.get_dummies(data, columns=object_cols, dtype=float)
+        # data = pd.get_dummies(data, columns=object_cols, dtype=float)
         
         # Convert them to tensor
         #tensor_object = torch.tensor([df_object[col].cat.codes.values for col in df_object], dtype=torch.int64).T
 
-        features = torch.tensor(data.values)
-
-        # Create a TensorDataset from the tensors
-        dataset = TensorDataset(features)
-
-        features = torch.tensor(data[self.clinical_features + self.genomic_features].values, dtype=torch.float32)
-        targets = torch.tensor(data[self.overall_survivals].values, dtype=torch.float32)
+        #features = torch.tensor(data.values)
+        #features = torch.tensor(data[self.clinical_features + self.genomic_features].values, dtype=torch.float32)
+        dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
+        
+        #targets = torch.tensor(data[self.overall_survivals].values, dtype=torch.float32)
 
         # Create a DataLoader from the TensorDataset
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,
-            collate_fn=self.collate_fn,
+            collate_fn=self.prepare_batch,
             pin_memory=True,
         )
 
@@ -323,12 +335,48 @@ class ExternalDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return self.DataLoader(self.test_data, shuffle=False, )
 
+    # def collate_fn(self, batch, graph_dataset=False):
+    #     # Customize how the data is collated into batches
+    #     # Unzip the data_list into two lists containing the two types of tuples
+
+    #     if graph_dataset:
+    #         graph_data_list, target_data_list = zip(*batch)     
+    #         graphs, clinicals, indices, project_ids = zip(*graph_data_list)
+    #         targets, overall_survivals, vital_statuses = zip(*target_data_list)
+
+    #         batched_graphs = batch(graphs)
+    #         batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
+    #         batch_indices = torch.tensor(indices)
+    #         batch_project_ids = torch.tensor(project_ids)
+    #         batch_targets = torch.tensor(targets)
+    #         batch_overall_survivals = torch.tensor(overall_survivals)
+    #         batch_vital_statuses = torch.tensor(vital_statuses)
+    #         return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
+    #                 (batch_targets, batch_overall_survivals, batch_vital_statuses))
+    #     else:
+    #         print('Using non graph dataset collate function')
+    #         # gene_data_list, target_data_list = zip(*batch)  
+    #         # genes, clinicals, indices, project_ids = zip(*gene_data_list)
+    #         # targets, overall_survivals, vital_statuses = zip(*target_data_list)
+
+
+    #         # batched_genes = torch.tensor(genes)
+    #         # batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
+    #         # batch_indices = torch.tensor(indices)
+    #         # batch_project_ids = torch.tensor(project_ids)
+    #         # batch_targets = torch.tensor(targets)
+    #         # batch_overall_survivals = torch.tensor(overall_survivals)
+    #         # batch_vital_statuses = torch.tensor(vital_statuses)
+    #         # return ((batched_genes, batch_clinicals, batch_indices, batch_project_ids),
+    #         #         (batch_targets, batch_overall_survivals, batch_vital_statuses))
+    #         return default_collate(batch)
+        
     def collate_fn(self, batch, graph_dataset=False):
         # Customize how the data is collated into batches
         # Unzip the data_list into two lists containing the two types of tuples
 
         if graph_dataset:
-            graph_data_list, target_data_list = zip(*batch)     
+            graph_data_list, target_data_list = zip(*batch)
             graphs, clinicals, indices, project_ids = zip(*graph_data_list)
             targets, overall_survivals, vital_statuses = zip(*target_data_list)
 
@@ -336,36 +384,15 @@ class ExternalDataModule(pl.LightningDataModule):
             batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
             batch_indices = torch.tensor(indices)
             batch_project_ids = torch.tensor(project_ids)
-            batch_targets = torch.tensor(targets)
-            batch_overall_survivals = torch.tensor(overall_survivals)
-            batch_vital_statuses = torch.tensor(vital_statuses)
-            return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
-                    (batch_targets, batch_overall_survivals, batch_vital_statuses))
         else:
-            print('Using non graph dataset collate function')
-            # gene_data_list, target_data_list = zip(*batch)  
-            # genes, clinicals, indices, project_ids = zip(*gene_data_list)
-            # targets, overall_survivals, vital_statuses = zip(*target_data_list)
+            data_list = list(batch)
+            features = torch.stack([torch.from_numpy(data[self.clinical_features + self.genomic_features].values) for data in data_list])
+            targets = torch.stack([torch.from_numpy(data[self.overall_survivals].values) for data in data_list])
+            batch = (features, targets)
 
-
-            # batched_genes = torch.tensor(genes)
-            # batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-            # batch_indices = torch.tensor(indices)
-            # batch_project_ids = torch.tensor(project_ids)
-            # batch_targets = torch.tensor(targets)
-            # batch_overall_survivals = torch.tensor(overall_survivals)
-            # batch_vital_statuses = torch.tensor(vital_statuses)
-            # return ((batched_genes, batch_clinicals, batch_indices, batch_project_ids),
-            #         (batch_targets, batch_overall_survivals, batch_vital_statuses))
-            return default_collate(batch)
+        return batch
         
 
-    def __getitem__(self, index):
-        '''
-        Support the indexing of the dataset
-        '''
-        return ((self._genomics[index], self._clinicals[index], index, 0),
-                (self.targets[index], self._survival_times[index], self._vital_statuses[index]))  
 
     def prepare_batch(self, batch):
         # Customize how the data is prepared for the model
@@ -391,16 +418,4 @@ class ExternalDataModule(pl.LightningDataModule):
         if stage == 'fit' or stage is None:
             shutil.rmtree(self.cache_directory)
 
-# test that the module works
 
-# if __name__ == '__main__':
-#     data_module = ExternalDataModule(project_id='SCLC', data_dir='Data/sclc_ucologne_2015', cache_directory='cache', batch_size=32, num_workers=4, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0)
-#     #test concat_data
-#     data_module.concat_data()
-    
-#     # test setup
-#     data_module.setup()
-
-#     #data_module.normalize_clinical_data()
-#     # test test_dataloader
-#     test_dataloader = data_module.test_dataloader()

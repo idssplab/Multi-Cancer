@@ -140,7 +140,10 @@ def main_test():
         print(i)
         print(batch)
         print('Shape of the batch:', batch[0].shape)
-        assert len(batch) > 0
+
+        # Unpack the batch
+        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        
 
 if __name__ == '__main__':
     #pytest.main(['-sv', __file__])
