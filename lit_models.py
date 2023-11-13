@@ -66,13 +66,13 @@ class LitFullModel(pl.LightningModule):
             mask = project_id == i
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
             prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')
-            precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary', threshold=thres)
-            recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary', threshold=thres)
+            # precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary', threshold=thres)
+            # recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary', threshold=thres)
             cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
-            self.log(f'Precision_{i}', precision, on_epoch=True, on_step=False)
-            self.log(f'Recall_{i}', recall, on_epoch=True, on_step=False)
+            # self.log(f'Precision_{i}', precision, on_epoch=True, on_step=False)
+            # self.log(f'Recall_{i}', recall, on_epoch=True, on_step=False)
             self.log(f'C-Index_{i}', cindex, on_epoch=True, on_step=False)
         self.step_results.clear()
 

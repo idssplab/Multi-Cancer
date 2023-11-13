@@ -26,8 +26,8 @@ class CustomDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
             # Assuming self.data is a pandas DataFrame
             row = self.data.iloc[index]
-            genomic = row[self.genomic_features]
-            clinical = row[self.clinical_features]
+            genomic = row[self.genomic_features].values
+            clinical = row[self.clinical_features].values
             index = index#row['PATIENT_ID']
             project_id = row['project_id']
             overall_survival = row['overall_survival']
@@ -223,7 +223,9 @@ class ExternalDataModule(pl.LightningDataModule):
         self.data['overall_survival'] = self.overall_survivals
         self.data['survival_time'] = self.disease_specific_survivals
         self.data['vital_status'] = self.vital_status
-        self.data['project_id'] = self.project_id
+        # fill all project ids with self.project_id
+        
+        self.data['project_id'] = 4 #temporary value
 
         #get rid of object type columns
         self.data = self.data.select_dtypes(exclude=['object'])       
@@ -287,28 +289,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
         data = self.test_data
 
-        # print(self.test_data.dtypes)
-        # # # Check which columns are object type
-        # object_cols = data.select_dtypes(include=['object']).columns
-
-        # # Select the columns that are object type
-        # df_object = data[object_cols]
-
-        
-
-        # df_object = df_object.astype('category')
-
-        # #incorporate the categorical columns into the dataframe
-        # data[object_cols] = df_object
-
-        # # Use one hot encoding to convert the categorical columns to numerical
-        
-        # data = pd.get_dummies(data, columns=object_cols, dtype=float)
-        
-        # Convert them to tensor
-        #tensor_object = torch.tensor([df_object[col].cat.codes.values for col in df_object], dtype=torch.int64).T
-
-        #features = torch.tensor(data.values)
+      
         #features = torch.tensor(data[self.clinical_features + self.genomic_features].values, dtype=torch.float32)
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
         
@@ -395,11 +376,11 @@ class ExternalDataModule(pl.LightningDataModule):
 
 
     def prepare_batch(self, batch):
-        # Customize how the data is prepared for the model
-        #The batches have this shape
-        #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
-
         # Unpack the batch
+        print('batch type', type(batch))
+        print('batch', batch)
+        print('batch size', len(batch))
+
         (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         
         # Convert the data to PyTorch tensors
