@@ -139,6 +139,7 @@ def main_test():
     for i, batch in enumerate(test):
         print(i)
         print(batch)
+        print('Shape of the batch:', batch[0].shape)
         assert len(batch) > 0
 
 if __name__ == '__main__':

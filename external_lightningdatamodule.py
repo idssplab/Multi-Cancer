@@ -45,8 +45,10 @@ class ExternalDataModule(pl.LightningDataModule):
         self.train_data = None
         self.val_data = None
         self.test_data = None
-        self.logger = get_logger('preprocess.tcga_program_dataset')       
-        
+        self.logger = get_logger('preprocess.tcga_program_dataset')     
+
+       
+        self.pin_memory = True
 
         
         self.get_chosen_features(chosen_features)
@@ -215,7 +217,9 @@ class ExternalDataModule(pl.LightningDataModule):
         
 
 
-    def DataLoader(self, data, shuffle=True):
+    def DataLoader(self, data, shuffle=True, batch_size = 128,  
+                               graph_dataset=False, collate_fn= default_collate,
+                               pin_memory=True, num_workers=4):
         
 
         # the data corresponds to the clinical and genomic data
@@ -276,7 +280,9 @@ class ExternalDataModule(pl.LightningDataModule):
         return self.DataLoader(self.val_data, shuffle=False)
 
     def test_dataloader(self):
-        return self.DataLoader(self.test_data, shuffle=False)
+        return self.DataLoader(self.test_data,  batch_size=self.batch_size, shuffle=False, 
+                               graph_dataset=self.graph_dataset, collate_fn=self.collate_fn,
+                               pin_memory=self.pin_memory, num_workers=self.num_workers)
 
     def collate_fn(self, batch, graph_dataset=False):
         # Customize how the data is collated into batches

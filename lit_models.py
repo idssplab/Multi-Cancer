@@ -41,6 +41,7 @@ class LitFullModel(pl.LightningModule):
         return loss
 
     def _shared_eval(self, batch, batch_idx):
+        #external dataset failing here
         (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
         loss = torch.nn.functional.binary_cross_entropy_with_logits(y, overall_survival)
