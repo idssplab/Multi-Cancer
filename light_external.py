@@ -52,7 +52,7 @@ def main():
     else:
         manager = TCGA_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
 
-    # Cross validation.
+    # Cross validation
     for key, values in manager['TCGA_BLC']['dataloaders'].items():
         if isinstance(key, int) and config['cross_validation']:
             models, optimizers = create_models_and_optimizers(config)

@@ -1,7 +1,9 @@
 import lightning.pytorch as pl
 import torch
 import torchmetrics
-from lifelines.utils import concordance_index
+
+from utils.runner.metric import youden_j, c_index
+
 
 class LitFullModel(pl.LightningModule):
     def __init__(self, models: dict[str, torch.nn.Module], optimizers: dict[str, torch.optim.Optimizer], config: dict):
@@ -10,11 +12,7 @@ class LitFullModel(pl.LightningModule):
         self.feat_ext = models['feat_ext']
         self.classifier = models['clf']
         self.optimizers_dict = optimizers
-        self.step_outputs = []
-        self.step_labels = []
-        self.step_project_ids = []
-        self.step_survival_time = []
-        self.step_vital_status = []
+        self.step_results = []                                                  # Slow but clean.
         # Disable automatic optimization for manual backward if there are multiple optimizers.
         if 'all' not in self.optimizers_dict:
             self.automatic_optimization = False
@@ -46,11 +44,6 @@ class LitFullModel(pl.LightningModule):
         (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
         loss = torch.nn.functional.binary_cross_entropy_with_logits(y, overall_survival)
-        self.step_survival_time.append(survival_time.detach().cpu())
-        self.step_vital_status.append(vital_status.detach().cpu())
-        self.step_outputs.append(y.detach().cpu())
-        self.step_labels.append(overall_survival.detach().cpu().type(torch.int))
-        self.step_project_ids.append(project_id.detach().cpu())
         self.step_results.append({
             'output': y.detach().cpu(),
             'label': overall_survival.detach().cpu().type(torch.int64),
@@ -58,38 +51,29 @@ class LitFullModel(pl.LightningModule):
             'vital_status': vital_status.detach().cpu(),
             'project_id': project_id.detach().cpu(),
         })
-        
         return loss
 
     def _shared_epoch_end(self) -> None:
-        # here I'm logging the validation data
-        outputs = torch.cat(self.step_outputs)
-        labels = torch.cat(self.step_labels)
-        project_id = torch.cat(self.step_project_ids)
-        survival_time = torch.cat(self.step_survival_time)
-        vital_status = torch.cat(self.step_vital_status)
+        outputs = torch.cat([result['output'] for result in self.step_results])
+        outputs = torch.functional.F.sigmoid(outputs)                           # AUC and PRC will not be affected.
+        labels = torch.cat([result['label'] for result in self.step_results])
+        survival_time = torch.cat([result['survival_time'] for result in self.step_results])
+        vital_status = torch.cat([result['vital_status'] for result in self.step_results])
+        project_id = torch.cat([result['project_id'] for result in self.step_results])
+        thres = youden_j(outputs, labels).astype('float')
         for i in torch.unique(project_id):
             mask = project_id == i
-         
-
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
             prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')
-            #precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary')
-            #recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary')
-            #precision, recall, thresholds = torchmetrics.functional.precision_recall_curve(outputs[mask], labels[mask], 'binary')
-            cindex = concordance_index(survival_time[mask], outputs[mask], vital_status[mask])
-
-            self.log(f'roc_{i}', roc, on_epoch=True, on_step=False)
-            self.log(f'prc_{i}', prc, on_epoch=True, on_step=False)
-            #self.log(f'precision_{i}', precision, on_epoch=True, on_step=False)
-            #self.log(f'recall_{i}', recall, on_epoch=True, on_step=False)
-            self.log(f'cindex_{i}', cindex, on_epoch=True, on_step=False)
-
-        self.step_outputs.clear()
-        self.step_labels.clear()
-        self.step_project_ids.clear()
-        self.step_survival_time.clear()
-        self.step_vital_status.clear()
+            precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary', threshold=thres)
+            recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary', threshold=thres)
+            cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
+            self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
+            self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
+            self.log(f'Precision_{i}', precision, on_epoch=True, on_step=False)
+            self.log(f'Recall_{i}', recall, on_epoch=True, on_step=False)
+            self.log(f'C-Index_{i}', cindex, on_epoch=True, on_step=False)
+        self.step_results.clear()
 
     def validation_step(self, batch, batch_idx):
         loss = self._shared_eval(batch, batch_idx)
@@ -103,3 +87,8 @@ class LitFullModel(pl.LightningModule):
 
     def on_test_epoch_end(self) -> None:
         self._shared_epoch_end()
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
+        return y.detach().cpu().numpy()

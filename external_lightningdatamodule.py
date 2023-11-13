@@ -323,14 +323,14 @@ class ExternalDataModule(pl.LightningDataModule):
 
 # test that the module works
 
-if __name__ == '__main__':
-    data_module = ExternalDataModule(project_id='SCLC', data_dir='Data/sclc_ucologne_2015', cache_directory='cache', batch_size=32, num_workers=4, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0)
-    #test concat_data
-    data_module.concat_data()
+# if __name__ == '__main__':
+#     data_module = ExternalDataModule(project_id='SCLC', data_dir='Data/sclc_ucologne_2015', cache_directory='cache', batch_size=32, num_workers=4, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0)
+#     #test concat_data
+#     data_module.concat_data()
     
-    # test setup
-    data_module.setup()
+#     # test setup
+#     data_module.setup()
 
-    #data_module.normalize_clinical_data()
-    # test test_dataloader
-    test_dataloader = data_module.test_dataloader()
+#     #data_module.normalize_clinical_data()
+#     # test test_dataloader
+#     test_dataloader = data_module.test_dataloader()
