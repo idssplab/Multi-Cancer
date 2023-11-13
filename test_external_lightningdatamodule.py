@@ -119,7 +119,7 @@ def main_test():
         project_id=['SCLC'],
         data_dir='Data/sclc_ucologne_2015',
         cache_directory='Cache/SCLC',
-        batch_size=128,
+        batch_size=9,
         num_workers=4,
         chosen_features={
             'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'},
@@ -138,11 +138,12 @@ def main_test():
     # test iterating through the dataloader and check that it is not empty
     for i, batch in enumerate(test):
         print(i)
-        print(batch)
-        print('Shape of the batch:', batch[0].shape)
+        
+        print('Shape of the batch:', len(batch[0]))
+        print(batch[0][0].shape)
 
         # Unpack the batch
-        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         
 
 if __name__ == '__main__':

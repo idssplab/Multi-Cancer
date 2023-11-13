@@ -52,7 +52,7 @@ external_datasets:
     data_dir: Data/sclc_ucologne_2015/
     cache_directory: Cache/SCLC/
     num_workers: 4
-    batch_size: 128
+    batch_size: 9
 
 datasets_manager:
   type: TCGA_Balanced_Datasets_Manager

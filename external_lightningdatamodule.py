@@ -26,15 +26,17 @@ class CustomDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
             # Assuming self.data is a pandas DataFrame
             row = self.data.iloc[index]
-            genomic = row[self.genomic_features].values
+            genomic = row[self.genomic_features].values #sending ndarray
+            #print('genomic', type(genomic))
             clinical = row[self.clinical_features].values
+            #print('clinical', clinical.shape)
             index = index#row['PATIENT_ID']
             project_id = row['project_id']
             overall_survival = row['overall_survival']
             survival_time = row['survival_time']
             vital_status = row['vital_status']
             
-            return (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status)
+            return ((genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status))
 
 
 
@@ -52,6 +54,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.target_type = 'overall_survival'
         self.n_threads = 1
         self.chosen_features = chosen_features
+        #print('chosen features', chosen_features)
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
         self.all_clinical_feature_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
@@ -87,7 +90,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.pin_memory = True
 
         
-        self.get_chosen_features(chosen_features)
+        
                
 
         # Specify the genomic type (use graph or not).
@@ -99,6 +102,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
        
         self.prepare_data()
+        self.get_chosen_features(chosen_features)
 
         self.get_patient_ids()
         self.get_clinical_ids()
@@ -114,9 +118,10 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def get_chosen_features(self, chosen_features):
         # Get chosen features             
-        self.chosen_project_gene_ids = chosen_features.get('gene_ids', {})
-        # self.chosen_clinical_numerical_ids: list = chosen_features.get('clinical_numerical_ids', [])
-        # self.chosen_clinical_categorical_ids = chosen_features.get('clinical_categorical_ids', [])
+        self.chosen_project_gene_ids =  ['TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D']
+        #filter gene columns by using the ones in chosen_project_gene_ids
+        
+       
 
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
@@ -125,7 +130,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def prepare_data(self):
         # Download the necessary data files
         # load sclc_ucologne_2015 data
-        self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm.csv', header=1, sep=',')
+        self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm_small.csv', header=0, sep=',')
        
         
         self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.csv', header=0, sep=',')
@@ -142,10 +147,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
 
 
-    def __getitem__(self, index):
-        return (self._genomics[index], self._clinicals[index], index, 0), (self.targets[index], self._survival_times[index], self._vital_statuses[index])
-
-
+   
     
     def get_patient_ids(self):
         # Get the patient IDs
@@ -188,7 +190,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
-        print('clinical data', self.clinical_data.columns)
+        #print('clinical data', self.clinical_data.columns)
 
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
         self.all_clinical_feature_ids = self.clinical_data.columns
@@ -198,6 +200,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def log_data_info(self):
                 # Log the information of the dataset.
         self.logger.info('Creating a TCGA Program Dataset with {} Projects...'.format(len(self.project_id)))
+        self.logger.info('Batch size {}'.format(self.batch_size))
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_features), len(self.clinical_features)
         ))
@@ -218,6 +221,7 @@ class ExternalDataModule(pl.LightningDataModule):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns
         
         
+        
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
 
         self.data['overall_survival'] = self.overall_survivals
@@ -231,6 +235,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.data = self.data.select_dtypes(exclude=['object'])       
         
         self.logger.info('Total {} samples'.format(len(self.data)))
+        self.logger.info('Total {} features'.format(len(self.data.columns)))
 
     
 
@@ -251,7 +256,8 @@ class ExternalDataModule(pl.LightningDataModule):
         object_cols = dtypes[dtypes == 'object'].index
         print(object_cols)
         #get rid of the ID column
-        self.genomic_data = self.genomic_data.drop(columns=['gene_id'])
+        #self.genomic_data = self.genomic_data.drop(columns=['gene_id'])
+        self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
 
         self._genomics = torch.tensor(self.genomic_data.values, dtype=torch.float32)
         self._clinicals = torch.tensor(self.clinical_data.values, dtype=torch.float32)
@@ -299,7 +305,7 @@ class ExternalDataModule(pl.LightningDataModule):
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,
-            collate_fn=self.prepare_batch,
+            collate_fn=default_collate,
             pin_memory=True,
         )
 
@@ -352,36 +358,44 @@ class ExternalDataModule(pl.LightningDataModule):
     #         #         (batch_targets, batch_overall_survivals, batch_vital_statuses))
     #         return default_collate(batch)
         
-    def collate_fn(self, batch, graph_dataset=False):
-        # Customize how the data is collated into batches
-        # Unzip the data_list into two lists containing the two types of tuples
+    # def collate_fn(self, batch, graph_dataset=False):
+    #     # Customize how the data is collated into batches
+    #     # Unzip the data_list into two lists containing the two types of tuples
 
-        if graph_dataset:
-            graph_data_list, target_data_list = zip(*batch)
-            graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-            targets, overall_survivals, vital_statuses = zip(*target_data_list)
+    #     if graph_dataset:
+    #         graph_data_list, target_data_list = zip(*batch)
+    #         graphs, clinicals, indices, project_ids = zip(*graph_data_list)
+    #         targets, overall_survivals, vital_statuses = zip(*target_data_list)
 
-            batched_graphs = batch(graphs)
-            batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-            batch_indices = torch.tensor(indices)
-            batch_project_ids = torch.tensor(project_ids)
-        else:
-            data_list = list(batch)
-            features = torch.stack([torch.from_numpy(data[self.clinical_features + self.genomic_features].values) for data in data_list])
-            targets = torch.stack([torch.from_numpy(data[self.overall_survivals].values) for data in data_list])
-            batch = (features, targets)
+    #         batched_graphs = batch(graphs)
+    #         batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
+    #         batch_indices = torch.tensor(indices)
+    #         batch_project_ids = torch.tensor(project_ids)
+    #     else:
+    #         data_list = list(batch)
+    #         features = torch.stack([torch.from_numpy(data[self.clinical_features + self.genomic_features].values) for data in data_list])
+    #         targets = torch.stack([torch.from_numpy(data[self.overall_survivals].values) for data in data_list])
+    #         batch = (features, targets)
 
-        return batch
+    #     return batch
         
 
 
-    def prepare_batch(self, batch):
+    def prepare_batch(self, data_list):
         # Unpack the batch
-        print('batch type', type(batch))
-        print('batch', batch)
-        print('batch size', len(batch))
+        #print('batch type', type(data_list))
+        #print('batch', data_list)
+        print('batch size', len(data_list))
 
-        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = data_list
+
+        print('data_list', type(data_list))
+        gene_data_list, target_data_list = zip(*data_list)
+        # Unzip each list of tuples into separate lists
+        genomic, clinical, index, project_id = zip(*gene_data_list)
+        overall_survival, survival_time, vital_status = zip(*target_data_list)
+
+        print('genomic', len(genomic[0]))           
         
         # Convert the data to PyTorch tensors
         genomic = torch.from_numpy(genomic).float()
