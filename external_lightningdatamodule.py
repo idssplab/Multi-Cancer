@@ -9,6 +9,8 @@ from torch import from_numpy
 import dgl
 import torch
 import shutil
+from torch.utils.data import DataLoader, TensorDataset
+
 
 
 class ExternalDataModule(pl.LightningDataModule):
@@ -23,6 +25,8 @@ class ExternalDataModule(pl.LightningDataModule):
         self.target_type = 'overall_survival'
         self.n_threads = 1
         self.chosen_features = chosen_features
+
+ 
 
         self.data = None
         self.genomic_type = 'tpm'
@@ -72,8 +76,11 @@ class ExternalDataModule(pl.LightningDataModule):
     def get_chosen_features(self, chosen_features):
         # Get chosen features             
         self.chosen_project_gene_ids = chosen_features.get('gene_ids', {})
-        self.chosen_clinical_numerical_ids: list = chosen_features.get('clinical_numerical_ids', [])
-        self.chosen_clinical_categorical_ids = chosen_features.get('clinical_categorical_ids', [])
+        # self.chosen_clinical_numerical_ids: list = chosen_features.get('clinical_numerical_ids', [])
+        # self.chosen_clinical_categorical_ids = chosen_features.get('clinical_categorical_ids', [])
+
+        self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
         self.chosen_clinical_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
     def prepare_data(self):
@@ -82,11 +89,12 @@ class ExternalDataModule(pl.LightningDataModule):
         self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm.csv', header=1, sep=',')
        
         
-        self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.tsv', header=0, sep='\t')
+        self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.csv', header=0, sep=',')
         #PATIENT_ID	gender	ethnicity	race	year_of_diagnosis	year_of_birth	
         # overall_survival	vital_status	disease_specific_survival	primary_site
         #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
-        self.overall_survivals = self.clinical_data['overall_survival']
+        print(self.clinical_data.columns)
+        self.overall_survivals = self.clinical_data.overall_survival
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival']
         self.primary_sites = self.clinical_data['primary_site']
         self
@@ -96,7 +104,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def get_patient_ids(self):
         # Get the patient IDs
         self.patient_ids = np.unique(self.clinical_data['PATIENT_ID'])
-        print(type(self.patient_ids))
+       
         self.logger.info('Total {} patients'.format(len(self.patient_ids)))
 
     def get_clinical_ids(self):
@@ -122,6 +130,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def normalize_clinical_data(self):
         self.logger.info('Normalize clinical numerical data using all samples')
         # Impute the missing values with mean
+        #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         
         clinical_mean = self.clinical_data[self.chosen_clinical_numerical_ids].mean()
         clinical_std = self.clinical_data[self.chosen_clinical_numerical_ids].std()
@@ -133,6 +142,8 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
+        #print('chosen categorical ids', self.chosen_clinical_categorical_ids)
+        #print('chosen clinical cols',self.clinical_data[self.chosen_clinical_categorical_ids].head())
         self.clinical_data = self.clinical_data.reindex(
                         columns=self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
                     ).fillna(0)
@@ -160,12 +171,10 @@ class ExternalDataModule(pl.LightningDataModule):
     def concat_data(self):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns
         
-        self.data = pd.merge(self.clinical_data, self.genomic_data , axis=0, index =0)
-        print(self.data.columns)
-        #print(self.data.i)
-        self.data = self.data.set_index(0)
-        self.data = self.data.loc[self.patient_ids]
-        #self.data = self.data.reset_index()
+        
+        self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
+        
+        
         self.logger.info('Total {} samples'.format(len(self.data)))
 
     
@@ -206,26 +215,57 @@ class ExternalDataModule(pl.LightningDataModule):
 
 
     def DataLoader(self, data, shuffle=True):
-        #DataLoader uses both the dataset and a sampler to determine the sequence of data loading.
-        #The sampler is optional, but it allows you to specify the order indices are presented to your model.
-        #The dataset is required and specifies the data elements that will be loaded.
-        #The DataLoader class is used to wrap an existing Dataset during training and provides
-        #additional utility methods to iterate through the data.
+        
 
         # the data corresponds to the clinical and genomic data
         # the target corresponds to the vital_status
+        # Assuming self.test_data is a pandas DataFrame
+        # Convert DataFrame to tensors
+        #! Temporary solution
+
+    
+        #check which columns are object type
+        #select the columns that are object type
+        #convert them to categorical
+        #convert them to tensor
+        data = self.test_data
+
+        # print(self.test_data.dtypes)
+        # # Check which columns are object type
+        object_cols = data.select_dtypes(include=['object']).columns
+
+        # Select the columns that are object type
+        df_object = data[object_cols]
 
         
 
-        return data.DataLoader(
-            data,
-            batch_size=self.batch_size,
+        df_object = df_object.astype('category')
+
+        #incorporate the categorical columns into the dataframe
+        data[object_cols] = df_object
+
+        # Use one hot encoding to convert the categorical columns to numerical
+        
+        data = pd.get_dummies(data, columns=object_cols, dtype=float)
+        
+        # Convert them to tensor
+        #tensor_object = torch.tensor([df_object[col].cat.codes.values for col in df_object], dtype=torch.int64).T
+
+        features = torch.tensor(data.values)
+
+        # Create a TensorDataset from the tensors
+        dataset = TensorDataset(features)
+
+        # Create a DataLoader from the TensorDataset
+        dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn,
             pin_memory=True,
         )
 
+
+        return dataloader
 
 
     def train_dataloader(self):
@@ -290,5 +330,7 @@ if __name__ == '__main__':
     
     # test setup
     data_module.setup()
+
+    #data_module.normalize_clinical_data()
     # test test_dataloader
     test_dataloader = data_module.test_dataloader()
