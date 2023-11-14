@@ -111,7 +111,7 @@ def main():
     # Test the final model.
     bootstrap_results = []
     for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):
-        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0])
+        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0]) #failing here
     bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
     for key, value in bootstrap_results.describe().loc[['mean', 'std']].to_dict().items():
         logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')
