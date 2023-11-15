@@ -179,15 +179,14 @@ class ExternalDataModule(pl.LightningDataModule):
         self.logger.info('Normalize clinical numerical data using all samples')
         # Impute the missing values with mean
         #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+
+        #NUMERICAL COLS
         
         clinical_mean = self.clinical_data[self.chosen_clinical_numerical_ids].mean()
         clinical_std = self.clinical_data[self.chosen_clinical_numerical_ids].std()
         # Impute the missing values with mean
         self.clinical_data = self.clinical_data.fillna(clinical_mean.to_dict())
 
-        #print the mean and std of year_of_diagnosis
-        #print(self.clinical_data['year_of_diagnosis'].mean())
-        #print(self.clinical_data['year_of_diagnosis'].std())
 
         clinical_std = clinical_std.replace(0, 1e-6)
 
@@ -196,14 +195,11 @@ class ExternalDataModule(pl.LightningDataModule):
         #the std is 0 for year_of_diagnosis, all samples were taken in 2015
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
-        #patch for year_of_diagnosis
-        #self.clinical_data['year_of_diagnosis'] = 0
-        
+    
+        # CATEGORICAL COLS
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
-       
-
-        
+              
 
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
 
@@ -222,26 +218,28 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data['ethnicity_hispanic or latino'] = 0
         self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
+        #remove nan values from vital status, replace nan values with 0
+        self.clinical_data['vital_status'] = self.clinical_data['vital_status'].fillna(0)
+
+
         self.clinical_data['survival_time'] = self.clinical_data['disease_specific_survival']
+
+        # Transform the disease specific survival and overall survival to binary
+        months_threshold = 60 # 5 years 
+        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
+        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
 
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
         self.vital_status = self.clinical_data['vital_status']
 
-        # drop overall_survival, vital_status, disease_specific_survival from clinical features
-        #self.clinical_data.drop(['overall_survival', 'vital_status', 'disease_specific_survival'], axis=1, inplace=True)
-
-
-
-        # self.all_clinical_feature_ids = self.clinical_data.columns
-        # items_to_remove = ['overall_survival', 'vital_status', 'disease_specific_survival', 'survival_time']
-
+       
         #assigned directly so that the order is preserved
         self.all_clinical_feature_ids = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
         'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
         'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
         'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
-         #[item for item in self.all_clinical_feature_ids if item not in items_to_remove]
+   
         
        
 
@@ -258,14 +256,14 @@ class ExternalDataModule(pl.LightningDataModule):
         self.logger.info('Overall survival imbalance ratio {} %'.format(
             sum(self.overall_survivals) / len(self.overall_survivals) * 100
         ))
-        self.logger.info('Disease specific survival event rate {} %'.format(
-            sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
-        ))
-        self.logger.info('Disease specific survival imbalance ratio {} %'.format(
-            sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0]) / len(
-                self.disease_specific_survivals[self.disease_specific_survivals >= 0]
-            ) * 100
-        ))
+        # self.logger.info('Disease specific survival event rate {} %'.format(
+        #     sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
+        # ))
+        # self.logger.info('Disease specific survival imbalance ratio {} %'.format(
+        #     sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0]) / len(
+        #         self.disease_specific_survivals[self.disease_specific_survivals >= 0]
+        #     ) * 100
+        # ))
 
     def concat_data(self):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns       

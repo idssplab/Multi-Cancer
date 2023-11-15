@@ -58,8 +58,8 @@ class LitFullModel(pl.LightningModule):
         outputs = torch.cat([result['output'] for result in self.step_results])
         outputs = torch.functional.F.sigmoid(outputs)                           # AUC and PRC will not be affected.
         labels = torch.cat([result['label'] for result in self.step_results])
-        print("outputs", outputs)
-        print("labels", labels)
+        #print("outputs", outputs)
+        #print("labels", labels)
 
         survival_time = torch.cat([result['survival_time'] for result in self.step_results])
         vital_status = torch.cat([result['vital_status'] for result in self.step_results])
@@ -71,6 +71,9 @@ class LitFullModel(pl.LightningModule):
             prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')
             # precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary', threshold=thres)
             # recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary', threshold=thres)
+            print("outputs", outputs[mask])
+            print('survi', survival_time[mask])
+            print('vital', vital_status[mask])
             cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
