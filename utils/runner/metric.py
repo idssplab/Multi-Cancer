@@ -43,11 +43,11 @@ def youden_j(output, target):
         y_score = output.numpy()
         y_true = target.numpy()
 
-        try:
-            fpr, tpr, thresholds = roc_curve(y_true, y_score)
-        except ValueError:
-            print('y_true:', y_true)
-            print('y_score:', y_score)
+        #try:
+        fpr, tpr, thresholds = roc_curve(y_true, y_score)
+        # except ValueError:
+        #     print('y_true:', y_true)
+        #     print('y_score:', y_score)
 
     return thresholds[argmax(tpr - fpr)]
 
