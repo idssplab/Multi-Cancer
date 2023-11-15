@@ -120,8 +120,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def get_chosen_features(self, chosen_features):
         # Get chosen features             
         self.chosen_project_gene_ids =  ['TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D']
-        #filter gene columns by using the ones in chosen_project_gene_ids
-        
+        #filter gene columns by using the ones in chosen_project_gene_ids      
        
 
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
@@ -186,9 +185,20 @@ class ExternalDataModule(pl.LightningDataModule):
         # Impute the missing values with mean
         self.clinical_data = self.clinical_data.fillna(clinical_mean.to_dict())
 
+        #print the mean and std of year_of_diagnosis
+        #print(self.clinical_data['year_of_diagnosis'].mean())
+        #print(self.clinical_data['year_of_diagnosis'].std())
+
+        clinical_std = clinical_std.replace(0, 1e-6)
+
         # Normalize the numerical values
         self.clinical_data[self.chosen_clinical_numerical_ids] -= clinical_mean
+        #the std is 0 for year_of_diagnosis, all samples were taken in 2015
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
+
+        #patch for year_of_diagnosis
+        #self.clinical_data['year_of_diagnosis'] = 0
+        
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
        
@@ -258,8 +268,7 @@ class ExternalDataModule(pl.LightningDataModule):
         ))
 
     def concat_data(self):
-        # Concatenate the genomic and clinical data , having the genes and clinical features as columns
-        
+        # Concatenate the genomic and clinical data , having the genes and clinical features as columns       
         
         
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
@@ -274,6 +283,11 @@ class ExternalDataModule(pl.LightningDataModule):
         
         self.logger.info('Total {} samples'.format(len(self.data)))
         self.logger.info('Total {} features'.format(len(self.data.columns)))
+
+        #check if there are any missing values
+        self.logger.info('Total {} missing values'.format(self.data.isnull().sum().sum()))
+        # save the data to a csv file to check the nan values
+        self.data.to_csv('format_ext_data.csv', index=False)
 
     
 
@@ -361,63 +375,6 @@ class ExternalDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return self.DataLoader(self.test_data, shuffle=False, )
 
-    # def collate_fn(self, batch, graph_dataset=False):
-    #     # Customize how the data is collated into batches
-    #     # Unzip the data_list into two lists containing the two types of tuples
-
-    #     if graph_dataset:
-    #         graph_data_list, target_data_list = zip(*batch)     
-    #         graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-    #         targets, overall_survivals, vital_statuses = zip(*target_data_list)
-
-    #         batched_graphs = batch(graphs)
-    #         batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-    #         batch_indices = torch.tensor(indices)
-    #         batch_project_ids = torch.tensor(project_ids)
-    #         batch_targets = torch.tensor(targets)
-    #         batch_overall_survivals = torch.tensor(overall_survivals)
-    #         batch_vital_statuses = torch.tensor(vital_statuses)
-    #         return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
-    #                 (batch_targets, batch_overall_survivals, batch_vital_statuses))
-    #     else:
-    #         print('Using non graph dataset collate function')
-    #         # gene_data_list, target_data_list = zip(*batch)  
-    #         # genes, clinicals, indices, project_ids = zip(*gene_data_list)
-    #         # targets, overall_survivals, vital_statuses = zip(*target_data_list)
-
-
-    #         # batched_genes = torch.tensor(genes)
-    #         # batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-    #         # batch_indices = torch.tensor(indices)
-    #         # batch_project_ids = torch.tensor(project_ids)
-    #         # batch_targets = torch.tensor(targets)
-    #         # batch_overall_survivals = torch.tensor(overall_survivals)
-    #         # batch_vital_statuses = torch.tensor(vital_statuses)
-    #         # return ((batched_genes, batch_clinicals, batch_indices, batch_project_ids),
-    #         #         (batch_targets, batch_overall_survivals, batch_vital_statuses))
-    #         return default_collate(batch)
-        
-    # def collate_fn(self, batch, graph_dataset=False):
-    #     # Customize how the data is collated into batches
-    #     # Unzip the data_list into two lists containing the two types of tuples
-
-    #     if graph_dataset:
-    #         graph_data_list, target_data_list = zip(*batch)
-    #         graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-    #         targets, overall_survivals, vital_statuses = zip(*target_data_list)
-
-    #         batched_graphs = batch(graphs)
-    #         batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-    #         batch_indices = torch.tensor(indices)
-    #         batch_project_ids = torch.tensor(project_ids)
-    #     else:
-    #         data_list = list(batch)
-    #         features = torch.stack([torch.from_numpy(data[self.clinical_features + self.genomic_features].values) for data in data_list])
-    #         targets = torch.stack([torch.from_numpy(data[self.overall_survivals].values) for data in data_list])
-    #         batch = (features, targets)
-
-    #     return batch
-        
 
 
     def prepare_batch(self, data_list):
