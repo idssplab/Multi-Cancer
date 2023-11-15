@@ -36,20 +36,12 @@ class Genomic_Feature_Extractor(BaseModel):
             #m.bias.type()
 
     def forward(self, genomic):
-        # Check the data types
-        #print('Genomic tensor type:', genomic.type())
+        
         # transform genomic to float32
         genomic = genomic.type(torch.float32)
         
        
-        #genomic should be a float32 tensor
-
-        #Current error:
-        #         Bootstrapping:   0%|                                                                                                                | 0/2 [00:00<?, ?it/s]torch.cuda.DoubleTensor
-        # linear forward
-        # Weight type torch.float32
-        # Input type torch.float64
-        # Bias type torch.float32
+       
         return self.genomic_feature_extractor(genomic)
 
 
@@ -60,8 +52,7 @@ class Clinical_Feature_Extractor(BaseModel):
         self.clinical_categorical_dim = clinical_categorical_dim
         self.clinical_embedding_dim = clinical_embedding_dim
 
-        print('Clinical numerical dim: ', self.clinical_numerical_dim)
-        print('Clinical categorical dim: ', self.clinical_categorical_dim)
+
 
         if self.clinical_categorical_dim:
             self.clinical_categorical_embedding = nn.Embedding(
@@ -93,6 +84,8 @@ class Clinical_Feature_Extractor(BaseModel):
 
     def forward(self, clinical):
         batch_size = clinical.size(0)
+
+        clinical = clinical.type(torch.float32)
 
         clinical_numerical, clinical_categorical = torch.split(
             clinical,
@@ -312,6 +305,8 @@ class Task_Classifier(BaseModel):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, embedding, project_id):
+        # make sure project_id is int
+        project_id = project_id.type(torch.int32)
         task_embedding = self.task_embedding(project_id)
         embeddings = torch.add(self.combine_layer(embedding), task_embedding)
         return self.classifier(embeddings).squeeze()
