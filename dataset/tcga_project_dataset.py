@@ -198,6 +198,8 @@ class TCGA_Project_Dataset(BaseDataset):
         self._patient_ids = tuple(df_total.index.to_list())
         self._genomic_ids = tuple(df_genomic.columns.to_list())
         self._clinical_ids = tuple(df_clinical.columns.to_list())
+
+        
         return
 
     def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):

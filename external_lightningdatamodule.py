@@ -190,10 +190,40 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
-        #print('clinical data', self.clinical_data.columns)
+       
+
+        
 
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
+
+        # rename columns to be the same as in TCGA dataset
+        # 'age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male', 
+        # 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 
+        # 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
+        # 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
+        self.clinical_data.rename({'gender_Female': 'gender_female', 'gender_Male': 'gender_male', 'race_0.0':'race_not reported', 
+                                   'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 'ethnicity_1.0':'ethnicity_not hispanic or latino' }, inplace=True, axis=1)
+        
+        #add the binary columns: 'race_american indian or alaska native', 'race_black or african american', 'ethnicity_hispanic or latino'
+
+        self.clinical_data['race_american indian or alaska native'] =0
+        self.clinical_data['race_black or african american'] =0
+        self.clinical_data['ethnicity_hispanic or latino'] = 0
+
+        self.clinical_data['overall_survival'] = self.overall_survivals
+        self.clinical_data['survival_time'] = self.disease_specific_survivals
+        self.clinical_data['vital_status'] = self.vital_status
+
+        # drop overall_survival, vital_status, disease_specific_survival from clinical features
+        self.clinical_data.drop(['overall_survival', 'vital_status', 'disease_specific_survival'], axis=1, inplace=True)
+
+
+
         self.all_clinical_feature_ids = self.clinical_data.columns
+        # drop the patient id column from all clinical features ids
+        print('all clinical features external ', self.all_clinical_feature_ids)
+        self.all_clinical_feature_ids = self.all_clinical_feature_ids.drop(['overall_survival', 'vital_status', 'disease_specific_survival',
+       ])
 
         
 
@@ -224,9 +254,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
 
-        self.data['overall_survival'] = self.overall_survivals
-        self.data['survival_time'] = self.disease_specific_survivals
-        self.data['vital_status'] = self.vital_status
+        
         # fill all project ids with self.project_id
         
         self.data['project_id'] = 2 #temporary value

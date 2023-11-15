@@ -37,7 +37,7 @@ class Genomic_Feature_Extractor(BaseModel):
 
     def forward(self, genomic):
         # Check the data types
-        print('Genomic tensor type: 'genomic.type())
+        #print('Genomic tensor type:', genomic.type())
         # transform genomic to float32
         genomic = genomic.type(torch.float32)
         
@@ -59,6 +59,9 @@ class Clinical_Feature_Extractor(BaseModel):
         self.clinical_numerical_dim = clinical_numerical_dim
         self.clinical_categorical_dim = clinical_categorical_dim
         self.clinical_embedding_dim = clinical_embedding_dim
+
+        print('Clinical numerical dim: ', self.clinical_numerical_dim)
+        print('Clinical categorical dim: ', self.clinical_categorical_dim)
 
         if self.clinical_categorical_dim:
             self.clinical_categorical_embedding = nn.Embedding(

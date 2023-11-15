@@ -307,6 +307,7 @@ class TCGA_Program_Dataset(BaseDataset):
         self._patient_ids = tuple(df_totals.index.to_list())
         self._genomic_ids = tuple(df_genomics.columns.to_list())
         self._clinical_ids = tuple(df_clinicals.columns.to_list())
+        print("clinical ids training models", self._clinical_ids)
 
         indices = {
             'train': np.array([i for i, patient_id in enumerate(self._patient_ids) if patient_id in train_patient_ids]),
