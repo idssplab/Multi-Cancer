@@ -24,6 +24,7 @@ class CustomDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
+            print('clinical features in Dataset', self.clinical_features)
             # Assuming self.data is a pandas DataFrame
             row = self.data.iloc[index]
             genomic = row[self.genomic_features].values #sending ndarray
@@ -222,12 +223,12 @@ class ExternalDataModule(pl.LightningDataModule):
 
 
 
-        self.all_clinical_feature_ids = self.clinical_data.columns
-        items_to_remove = ['overall_survival', 'vital_status', 'disease_specific_survival', 'survival_time']
-        self.all_clinical_feature_ids = 'age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
+        # self.all_clinical_feature_ids = self.clinical_data.columns
+        # items_to_remove = ['overall_survival', 'vital_status', 'disease_specific_survival', 'survival_time']
+        self.all_clinical_feature_ids = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
         'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
         'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
-        'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
+        'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
          #[item for item in self.all_clinical_feature_ids if item not in items_to_remove]
         # drop the patient id column from all clinical features ids
         print('all clinical features external ', self.all_clinical_feature_ids)
@@ -332,6 +333,7 @@ class ExternalDataModule(pl.LightningDataModule):
         data = self.test_data
 
       
+        print('DataLoader all clinical features', self.all_clinical_feature_ids)
         #features = torch.tensor(data[self.clinical_features + self.genomic_features].values, dtype=torch.float32)
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
         
