@@ -209,21 +209,29 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data['race_american indian or alaska native'] =0
         self.clinical_data['race_black or african american'] =0
         self.clinical_data['ethnicity_hispanic or latino'] = 0
+        self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
-        self.clinical_data['overall_survival'] = self.overall_survivals
-        self.clinical_data['survival_time'] = self.disease_specific_survivals
-        self.clinical_data['vital_status'] = self.vital_status
+        self.clinical_data['survival_time'] = self.clinical_data['disease_specific_survival']
+
+        self.overall_survivals = self.clinical_data['overall_survival'] 
+        self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
+        self.vital_status = self.clinical_data['vital_status']
 
         # drop overall_survival, vital_status, disease_specific_survival from clinical features
-        self.clinical_data.drop(['overall_survival', 'vital_status', 'disease_specific_survival'], axis=1, inplace=True)
+        #self.clinical_data.drop(['overall_survival', 'vital_status', 'disease_specific_survival'], axis=1, inplace=True)
 
 
 
         self.all_clinical_feature_ids = self.clinical_data.columns
+        items_to_remove = ['overall_survival', 'vital_status', 'disease_specific_survival', 'survival_time']
+        self.all_clinical_feature_ids = 'age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
+        'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
+        'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
+        'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
+         #[item for item in self.all_clinical_feature_ids if item not in items_to_remove]
         # drop the patient id column from all clinical features ids
         print('all clinical features external ', self.all_clinical_feature_ids)
-        self.all_clinical_feature_ids = self.all_clinical_feature_ids.drop(['overall_survival', 'vital_status', 'disease_specific_survival',
-       ])
+       
 
         
 
