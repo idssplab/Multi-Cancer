@@ -162,18 +162,18 @@ class ExternalDataModule(pl.LightningDataModule):
     def get_genomic_ids(self):
         self.genomic_features = self.genomic_data.columns[1:]
 
-    def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
-        src = from_numpy(df_ppi['src'].to_numpy())
-        dst = from_numpy(df_ppi['dst'].to_numpy())
-        graphs: list[dgl.DGLGraph] = []
+    # def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
+    #     src = from_numpy(df_ppi['src'].to_numpy())
+    #     dst = from_numpy(df_ppi['dst'].to_numpy())
+    #     graphs: list[dgl.DGLGraph] = []
 
-        # Create a graph for each sample (patient).
-        for _, row in df_genomic.iterrows():
-            g = dgl.graph((src, dst), num_nodes=self._num_nodes)
-            g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
-            g = dgl.add_reverse_edges(g)
-            graphs.append(g)
-        return graphs
+    #     # Create a graph for each sample (patient).
+    #     for _, row in df_genomic.iterrows():
+    #         g = dgl.graph((src, dst), num_nodes=self._num_nodes)
+    #         g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
+    #         g = dgl.add_reverse_edges(g)
+    #         graphs.append(g)
+    #     return graphs
 
     def normalize_clinical_data(self):
         self.logger.info('Normalize clinical numerical data using all samples')
@@ -385,26 +385,26 @@ class ExternalDataModule(pl.LightningDataModule):
         # Unpack the batch
         #print('batch type', type(data_list))
         #print('batch', data_list)
-        print('batch size', len(data_list))
+        #print('batch size', len(data_list))
 
         #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = data_list
 
-        print('data_list', type(data_list))
+        #print('data_list', type(data_list))
         gene_data_list, target_data_list = zip(*data_list)
         # Unzip each list of tuples into separate lists
         genomic, clinical, index, project_id = zip(*gene_data_list)
         overall_survival, survival_time, vital_status = zip(*target_data_list)
 
-        print('genomic', len(genomic[0]))           
+        #print('genomic', len(genomic[0]))           
         
         # Convert the data to PyTorch tensors
-        genomic = torch.from_numpy(genomic).float()
-        clinical = torch.from_numpy(clinical).float()
-        index = torch.tensor(index).long()
-        project_id = torch.tensor(project_id).long()
-        overall_survival = torch.tensor(overall_survival).float()
-        survival_time = torch.tensor(survival_time).float()
-        vital_status = torch.tensor(vital_status).float()
+        genomic = torch.from_numpy(genomic).float32()
+        clinical = torch.from_numpy(clinical).float32()
+        index = torch.tensor(index).float32()
+        project_id = torch.tensor(project_id).float32()
+        overall_survival = torch.tensor(overall_survival).float32()
+        survival_time = torch.tensor(survival_time).float32()
+        vital_status = torch.tensor(vital_status).float32()
         
         return (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status)
 

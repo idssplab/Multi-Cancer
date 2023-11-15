@@ -37,10 +37,19 @@ class Genomic_Feature_Extractor(BaseModel):
 
     def forward(self, genomic):
         # Check the data types
-        print(genomic.type())
+        print('Genomic tensor type: 'genomic.type())
+        # transform genomic to float32
+        genomic = genomic.type(torch.float32)
         
-        #print(self.bias.type())
+       
+        #genomic should be a float32 tensor
 
+        #Current error:
+        #         Bootstrapping:   0%|                                                                                                                | 0/2 [00:00<?, ?it/s]torch.cuda.DoubleTensor
+        # linear forward
+        # Weight type torch.float32
+        # Input type torch.float64
+        # Bias type torch.float32
         return self.genomic_feature_extractor(genomic)
 
 
