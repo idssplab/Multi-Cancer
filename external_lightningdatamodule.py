@@ -229,7 +229,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.data['vital_status'] = self.vital_status
         # fill all project ids with self.project_id
         
-        self.data['project_id'] = 4 #temporary value
+        self.data['project_id'] = 2 #temporary value
 
         #get rid of object type columns
         self.data = self.data.select_dtypes(exclude=['object'])       

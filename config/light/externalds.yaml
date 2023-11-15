@@ -58,7 +58,7 @@ datasets_manager:
   type: TCGA_Balanced_Datasets_Manager
   TCGA_BLC:
     train: true
-    batch_size: 128
+    batch_size: 64
     num_folds: 2 #5
     test_split: 0.2
     num_workers: 4

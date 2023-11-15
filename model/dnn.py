@@ -31,8 +31,16 @@ class Genomic_Feature_Extractor(BaseModel):
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.constant_(m.bias, 0)
+             # print type
+            #m.weight.type()
+            #m.bias.type()
 
     def forward(self, genomic):
+        # Check the data types
+        print(genomic.type())
+        
+        #print(self.bias.type())
+
         return self.genomic_feature_extractor(genomic)
 
 
