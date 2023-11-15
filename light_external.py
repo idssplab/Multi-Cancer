@@ -49,7 +49,7 @@ def main():
         project_id=['SCLC'],
         data_dir='Data/sclc_ucologne_2015',
         cache_directory='Cache/SCLC',
-        batch_size=64,
+        batch_size=9,
         num_workers=4,
         chosen_features={
             'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'},
@@ -87,7 +87,9 @@ def main():
                 enable_checkpointing=False,
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
+            #trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
+            print("testing on external data - validation")
+            trainer.test(lit_model, dataloaders=external_testing_dataloader, verbose=False)
             #trainer.test(lit_model, dataloaders=external_testing_data.test_dataloader, verbose=False)
             
             
@@ -111,7 +113,7 @@ def main():
     # Test the final model.
     bootstrap_results = []
     for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):
-        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0]) #failing here
+        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0]) 
     bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
     for key, value in bootstrap_results.describe().loc[['mean', 'std']].to_dict().items():
         logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')

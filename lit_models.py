@@ -71,15 +71,15 @@ class LitFullModel(pl.LightningModule):
             prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')
             # precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary', threshold=thres)
             # recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary', threshold=thres)
-            print("outputs", outputs[mask])
-            print('survi', survival_time[mask])
-            print('vital', vital_status[mask])
+            
             cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
+            
             # self.log(f'Precision_{i}', precision, on_epoch=True, on_step=False)
             # self.log(f'Recall_{i}', recall, on_epoch=True, on_step=False)
             self.log(f'C-Index_{i}', cindex, on_epoch=True, on_step=False)
+            print(f"AUROC {roc:.6f} AUPRC {prc:.6f} cindex {cindex:.6f}  thres {thres:.6f}", end='\n')
         self.step_results.clear()
 
     def validation_step(self, batch, batch_idx):

@@ -2,7 +2,7 @@ n_gpu: 1
 pin_memory: true
 max_epochs: 10 #50
 cross_validation: true
-bootstrap_repeats: 2 #1000
+bootstrap_repeats: 10 #1000
 
 optimizers:
   feat_ext:
@@ -52,13 +52,13 @@ external_datasets:
     data_dir: Data/sclc_ucologne_2015/
     cache_directory: Cache/SCLC/
     num_workers: 4
-    batch_size: 9
+    batch_size: 18
 
 datasets_manager:
   type: TCGA_Balanced_Datasets_Manager
   TCGA_BLC:
     train: true
     batch_size: 64
-    num_folds: 2 #5
+    num_folds: 4 #5
     test_split: 0.2
     num_workers: 4
