@@ -9,7 +9,7 @@ from torch import from_numpy
 import dgl
 import torch
 import shutil
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, RandomSampler, WeightedRandomSampler
 from torch.utils.data.dataloader import default_collate
 
 
@@ -103,7 +103,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.get_clinical_ids()
         self.get_genomic_ids()        
         self.normalize_clinical_data()
-        self.log_data_info()
+        #self.log_data_info()
         
  
 
@@ -318,11 +318,16 @@ class ExternalDataModule(pl.LightningDataModule):
         data = self.test_data     
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
         # Create a DataLoader from the TensorDataset
+
+        sampler = RandomSampler( data_source=dataset, replacement=True, num_samples=len(dataset))   
+
+
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,
             collate_fn=default_collate,
             pin_memory=True,
+            sampler=sampler
         )
 
 

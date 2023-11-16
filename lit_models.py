@@ -41,7 +41,7 @@ class LitFullModel(pl.LightningModule):
         return loss
 
     def _shared_eval(self, batch, batch_idx):
-        #external dataset failing here
+        
         (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
         loss = torch.nn.functional.binary_cross_entropy_with_logits(y, overall_survival)
@@ -68,18 +68,12 @@ class LitFullModel(pl.LightningModule):
         for i in torch.unique(project_id):
             mask = project_id == i
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
-            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')
-            # precision = torchmetrics.functional.precision(outputs[mask], labels[mask], 'binary', threshold=thres)
-            # recall = torchmetrics.functional.recall(outputs[mask], labels[mask], 'binary', threshold=thres)
-            
+            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')            
             cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
-            
-            # self.log(f'Precision_{i}', precision, on_epoch=True, on_step=False)
-            # self.log(f'Recall_{i}', recall, on_epoch=True, on_step=False)
             self.log(f'C-Index_{i}', cindex, on_epoch=True, on_step=False)
-            print(f"AUROC {roc:.6f} AUPRC {prc:.6f} cindex {cindex:.6f}  thres {thres:.6f}", end='\n')
+
         self.step_results.clear()
 
     def validation_step(self, batch, batch_idx):
@@ -93,6 +87,24 @@ class LitFullModel(pl.LightningModule):
         self._shared_eval(batch, batch_idx)
 
     def on_test_epoch_end(self) -> None:
+        
+        outputs = torch.cat([result['output'] for result in self.step_results])
+        outputs = torch.functional.F.sigmoid(outputs)                           # AUC and PRC will not be affected.
+        labels = torch.cat([result['label'] for result in self.step_results])
+        #print("outputs", outputs)
+        #print("labels", labels)
+
+        survival_time = torch.cat([result['survival_time'] for result in self.step_results])
+        vital_status = torch.cat([result['vital_status'] for result in self.step_results])
+        project_id = torch.cat([result['project_id'] for result in self.step_results])
+        thres = youden_j(outputs, labels).astype('float')
+        for i in torch.unique(project_id):
+            mask = project_id == i
+            roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
+            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')            
+            cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
+                    # this is for checking the lack of SD in the results
+        print(f"AUROC {roc:.6f} AUPRC {prc:.6f} cindex {cindex:.6f}  thres {thres:.6f}", end='\n')
         self._shared_epoch_end()
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):

@@ -97,7 +97,7 @@ def main():
         elif key == 'train':
             train = values
         elif key == 'test':
-            test = external_testing_dataloader
+            test = external_testing_dataloader #values
 
     # Train the final model.
     models, optimizers = create_models_and_optimizers(config)
@@ -114,6 +114,8 @@ def main():
     # Test the final model.
     bootstrap_results = []
     for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):
+        # need to resample the external data
+       
         bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0]) 
     bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
     for key, value in bootstrap_results.describe().loc[['mean', 'std']].to_dict().items():
