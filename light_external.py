@@ -52,14 +52,18 @@ def main():
         batch_size=9,
         num_workers=4,
         chosen_features={
-            # 'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'},
-            'gene_ids': {'ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU'},
+            #'gene_ids': {'SLC2A1', 'HIF1A', 'ALCAM', 'KDM1A', 'CADM1', 'OCIAD1', 'EPCAM', 'CDC73', 'PRKRA', 'DHX9', 'HNRNPU', 'PTK7', 'STAU1', 'SSR1', 'KRR1', 'SERBP1', 'PUM1', 'CLTC','ESR1', 'EFTUD2'}, #luad
+            #'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'}, #own
+            'gene_ids': {'ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU'}, #brca
+            #'gene_ids': {'ABCG2', 'RNF4', 'HNRNPL', 'ZBTB2', 'CD44', 'HNRNPA1', 'PUM1', 'SERBP1', 'ABCB1', 'TFCP2', 'EPCAM', 'PROM1', 'HNRNPU', 'ALDH1A1', 'HNRNPR', 'ABCC1', 'ALCAM', 'RPL4', 'DHX9', 'HNRNPK'}, #coad
             'clinical_numerical_ids': ['overall_survival',  'vital_status','age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'],
             'clinical_categorical_ids': ['gender', 'race', 'ethnicity']
         },
         graph_dataset=False,
         ppi_score_name='escore',
-        ppi_score_threshold=0.0
+        ppi_score_threshold=0.0,
+        project_id_task_descriptor= 1
+
     )
 
     external_testing_data.setup()
@@ -86,12 +90,13 @@ def main():
                 log_every_n_steps=1,
                 enable_model_summary=False,
                 enable_checkpointing=False,
+                
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            #trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
-            print("testing on external data - validation")
-            trainer.test(lit_model, dataloaders=external_testing_dataloader, verbose=False)
-            #trainer.test(lit_model, dataloaders=external_testing_data.test_dataloader, verbose=False)
+            trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
+            trainer.test(lit_model, dataloaders=test, verbose=False)
+            
+            
             
             
         elif key == 'train':

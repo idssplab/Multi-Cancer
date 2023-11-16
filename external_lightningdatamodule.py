@@ -44,10 +44,10 @@ class CustomDataset(torch.utils.data.Dataset):
 
 
 class ExternalDataModule(pl.LightningDataModule):
-    def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0):
+    def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0, project_id_task_descriptor=0):
         #numworkers comes from cache directory
         super().__init__()
-        self.project_id_task_descriptor = 2
+        self.project_id_task_descriptor = project_id_task_descriptor
         self.data_dir = data_dir
         self.cache_directory = cache_directory
         self.batch_size = batch_size
@@ -103,7 +103,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.get_clinical_ids()
         self.get_genomic_ids()        
         self.normalize_clinical_data()
-        #self.log_data_info()
+        self.log_data_info()
         
  
 
@@ -269,7 +269,7 @@ class ExternalDataModule(pl.LightningDataModule):
         #this dataset is only for testing 
         self.prepare_data()
         self.get_chosen_features(self.chosen_features)
-        self.log_data_info()
+        
         self.normalize_clinical_data()
         self.concat_data()
         self.split_data()
