@@ -55,6 +55,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.target_type = 'overall_survival'
         self.n_threads = 1
         self.chosen_features = chosen_features
+        self.chosen_genes = chosen_features['gene_ids']
         
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
@@ -85,26 +86,19 @@ class ExternalDataModule(pl.LightningDataModule):
         self.train_data = None
         self.val_data = None
         self.test_data = None
-        self.logger = get_logger('preprocess.tcga_program_dataset')     
-
-       
-        self.pin_memory = True
-
-        
+        self.logger = get_logger('preprocess.tcga_program_dataset')            
+        self.pin_memory = True      
         
                
 
         # Specify the genomic type (use graph or not).
         self.graph_dataset = graph_dataset
         self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold
+        self.ppi_threshold = ppi_score_threshold        
 
-        
-
-       
-        self.prepare_data()
         self.get_chosen_features(chosen_features)
-
+        self.prepare_data()
+        
         self.get_patient_ids()
         self.get_clinical_ids()
         self.get_genomic_ids()
@@ -119,8 +113,8 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def get_chosen_features(self, chosen_features):
         # Get chosen features             
-        self.chosen_project_gene_ids =  ['TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D']
-        #filter gene columns by using the ones in chosen_project_gene_ids      
+        self.chosen_genes =  list(chosen_features['gene_ids'])
+        print("chosen genes", self.chosen_genes)
        
 
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
@@ -132,7 +126,8 @@ class ExternalDataModule(pl.LightningDataModule):
         # load sclc_ucologne_2015 data
         self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm_small.csv', header=0, sep=',')
        
-        
+        self.filter_genes()
+
         self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.csv', header=0, sep=',')
         #PATIENT_ID	gender	ethnicity	race	year_of_diagnosis	year_of_birth	
         # overall_survival	vital_status	disease_specific_survival	primary_site
@@ -145,6 +140,8 @@ class ExternalDataModule(pl.LightningDataModule):
         
 
         
+    def filter_genes(self):
+        self.genomic_data = self.genomic_data[self.chosen_genes]
 
 
    
@@ -162,26 +159,9 @@ class ExternalDataModule(pl.LightningDataModule):
     def get_genomic_ids(self):
         self.genomic_features = self.genomic_data.columns[1:]
 
-    # def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
-    #     src = from_numpy(df_ppi['src'].to_numpy())
-    #     dst = from_numpy(df_ppi['dst'].to_numpy())
-    #     graphs: list[dgl.DGLGraph] = []
 
-    #     # Create a graph for each sample (patient).
-    #     for _, row in df_genomic.iterrows():
-    #         g = dgl.graph((src, dst), num_nodes=self._num_nodes)
-    #         g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
-    #         g = dgl.add_reverse_edges(g)
-    #         graphs.append(g)
-    #     return graphs
 
-    def normalize_clinical_data(self):
-        self.logger.info('Normalize clinical numerical data using all samples')
-        # Impute the missing values with mean
-        #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
-
-        #NUMERICAL COLS
-        
+    def preprocess_clinical_numeric_data(self):
         clinical_mean = self.clinical_data[self.chosen_clinical_numerical_ids].mean()
         clinical_std = self.clinical_data[self.chosen_clinical_numerical_ids].std()
         # Impute the missing values with mean
@@ -195,11 +175,30 @@ class ExternalDataModule(pl.LightningDataModule):
         #the std is 0 for year_of_diagnosis, all samples were taken in 2015
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
+        #remove nan values from vital status, replace nan values with 0
+        self.clinical_data['vital_status'] = self.clinical_data['vital_status'].fillna(0)
+        self.clinical_data['survival_time'] = self.clinical_data['disease_specific_survival']
+
+        # Transform the disease specific survival and overall survival to binary
+        months_threshold = 60 # 5 years 
+        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
+        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
+
+        self.overall_survivals = self.clinical_data['overall_survival'] 
+        self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
+        self.vital_status = self.clinical_data['vital_status']
+
+    def normalize_clinical_data(self):
+        self.logger.info('Normalize clinical numerical data using all samples')
+        # Impute the missing values with mean
+        #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+        
+        self.preprocess_clinical_numeric_data()        
+
     
         # CATEGORICAL COLS
 
-        self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)
-              
+        self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)             
 
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
 
@@ -218,27 +217,16 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data['ethnicity_hispanic or latino'] = 0
         self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
-        #remove nan values from vital status, replace nan values with 0
-        self.clinical_data['vital_status'] = self.clinical_data['vital_status'].fillna(0)
-
-
-        self.clinical_data['survival_time'] = self.clinical_data['disease_specific_survival']
-
-        # Transform the disease specific survival and overall survival to binary
-        months_threshold = 60 # 5 years 
-        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
-        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
-
-        self.overall_survivals = self.clinical_data['overall_survival'] 
-        self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
-        self.vital_status = self.clinical_data['vital_status']
-
-       
         #assigned directly so that the order is preserved
         self.all_clinical_feature_ids = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
         'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
         'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
         'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
+
+        
+
+       
+        
    
         
        
@@ -256,15 +244,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.logger.info('Overall survival imbalance ratio {} %'.format(
             sum(self.overall_survivals) / len(self.overall_survivals) * 100
         ))
-        # self.logger.info('Disease specific survival event rate {} %'.format(
-        #     sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
-        # ))
-        # self.logger.info('Disease specific survival imbalance ratio {} %'.format(
-        #     sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0]) / len(
-        #         self.disease_specific_survivals[self.disease_specific_survivals >= 0]
-        #     ) * 100
-        # ))
-
+        
     def concat_data(self):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns       
         
@@ -307,7 +287,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
         #get rid of the ID column
         #self.genomic_data = self.genomic_data.drop(columns=['gene_id'])
-        self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
+        #self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
 
         self._genomics = torch.tensor(self.genomic_data.values, dtype=torch.float32)
         self._clinicals = torch.tensor(self.clinical_data.values, dtype=torch.float32)
