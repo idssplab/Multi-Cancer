@@ -113,10 +113,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def get_chosen_features(self, chosen_features):
         # Get chosen features             
-        self.chosen_genes =  list(chosen_features['gene_ids'])
-        print("chosen genes", self.chosen_genes)
-       
-
+        self.chosen_genes =  list(chosen_features['gene_ids'])     
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
         self.chosen_clinical_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
@@ -141,7 +138,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
         
     def filter_genes(self):
-        self.genomic_data = self.genomic_data[self.chosen_genes]
+        self.genomic_data = self.genomic_data[['Unnamed: 0']+ self.chosen_genes ]
 
 
    
@@ -287,7 +284,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
         #get rid of the ID column
         #self.genomic_data = self.genomic_data.drop(columns=['gene_id'])
-        #self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
+        self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
 
         self._genomics = torch.tensor(self.genomic_data.values, dtype=torch.float32)
         self._clinicals = torch.tensor(self.clinical_data.values, dtype=torch.float32)
