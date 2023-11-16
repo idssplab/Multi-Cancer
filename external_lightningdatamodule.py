@@ -47,6 +47,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0):
         #numworkers comes from cache directory
         super().__init__()
+        self.project_id_task_descriptor = 2
         self.data_dir = data_dir
         self.cache_directory = cache_directory
         self.batch_size = batch_size
@@ -97,13 +98,10 @@ class ExternalDataModule(pl.LightningDataModule):
         self.ppi_threshold = ppi_score_threshold        
 
         self.get_chosen_features(chosen_features)
-        self.prepare_data()
-        
+        self.prepare_data()        
         self.get_patient_ids()
         self.get_clinical_ids()
-        self.get_genomic_ids()
-
-        
+        self.get_genomic_ids()        
         self.normalize_clinical_data()
         self.log_data_info()
         
@@ -251,7 +249,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
         # fill all project ids with self.project_id
         
-        self.data['project_id'] = 2 #temporary value
+        self.data['project_id'] =self.project_id_task_descriptor #temporary value
 
         #get rid of object type columns
         self.data = self.data.select_dtypes(exclude=['object'])       
@@ -278,12 +276,9 @@ class ExternalDataModule(pl.LightningDataModule):
         self.create_tensors()
 
     def create_tensors(self):
-        # if any column is object type, print names of columns with object type
-        dtypes = self.genomic_data.dtypes
-        object_cols = dtypes[dtypes == 'object'].index
-        
+     
+               
         #get rid of the ID column
-        #self.genomic_data = self.genomic_data.drop(columns=['gene_id'])
         self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
 
         self._genomics = torch.tensor(self.genomic_data.values, dtype=torch.float32)
@@ -320,15 +315,8 @@ class ExternalDataModule(pl.LightningDataModule):
     def DataLoader(self, data, shuffle=True):
         
 
-        data = self.test_data
-
-      
-        
-        #features = torch.tensor(data[self.clinical_features + self.genomic_features].values, dtype=torch.float32)
+        data = self.test_data     
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
-        
-        #targets = torch.tensor(data[self.overall_survivals].values, dtype=torch.float32)
-
         # Create a DataLoader from the TensorDataset
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
@@ -350,30 +338,6 @@ class ExternalDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return self.DataLoader(self.test_data, shuffle=False, )
 
-
-
-    def prepare_batch(self, data_list):
-        
-        #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = data_list
-
-        
-        gene_data_list, target_data_list = zip(*data_list)
-        # Unzip each list of tuples into separate lists
-        genomic, clinical, index, project_id = zip(*gene_data_list)
-        overall_survival, survival_time, vital_status = zip(*target_data_list)
-
-                
-        
-        # Convert the data to PyTorch tensors
-        genomic = torch.from_numpy(genomic).float32()
-        clinical = torch.from_numpy(clinical).float32()
-        index = torch.tensor(index).float32()
-        project_id = torch.tensor(project_id).float32()
-        overall_survival = torch.tensor(overall_survival).float32()
-        survival_time = torch.tensor(survival_time).float32()
-        vital_status = torch.tensor(vital_status).float32()
-        
-        return (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status)
 
     def teardown(self, stage=None):
         # Clean up any resources used by the data module
