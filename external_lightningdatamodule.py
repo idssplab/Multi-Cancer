@@ -236,15 +236,18 @@ class ExternalDataModule(pl.LightningDataModule):
             len(self.patient_ids), len(self.genomic_features), len(self.clinical_features)
         ))
         self.logger.info('Target Type {}'.format(self.target_type)) #Target Type overall_survival
-        self.logger.info('Overall survival imbalance ratio {} %'.format(
-            sum(self.overall_survivals) / len(self.overall_survivals) * 100
-        ))
+        # self.logger.info('Overall survival imbalance ratio {} %'.format(
+        #     sum(self.overall_survivals) / len(self.overall_survivals) * 100
+        # ))
+        # self.logger.info('Number of survivals {}, of a total of{}'.format(  sum( self.overall_survivals), len(self.overall_survivals)))
         
     def concat_data(self):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns       
         
         
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
+
+        
 
         
         # fill all project ids with self.project_id
@@ -257,10 +260,15 @@ class ExternalDataModule(pl.LightningDataModule):
         self.logger.info('Total {} samples'.format(len(self.data)))
         self.logger.info('Total {} features'.format(len(self.data.columns)))
 
+        self.logger.info('Overall survival imbalance ratio {} %'.format(
+            sum(self.data['overall_survival']) / len(self.data['overall_survival']) * 100
+        ))
+        #self.logger.info('Number of survivals {}, of a total of {}'.format(  sum( self.data['overall_survival']), len(self.data['overall_survival'])))
+
         #check if there are any missing values
         self.logger.info('Total {} missing values'.format(self.data.isnull().sum().sum()))
         # save the data to a csv file to check the nan values
-        self.data.to_csv('format_ext_data.csv', index=False)
+        self.data.to_csv('format_ext_data.csv', index=True)
 
     
 

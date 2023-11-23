@@ -1,0 +1,63 @@
+n_gpu: 1
+pin_memory: true
+max_epochs: 50
+cross_validation: true
+bootstrap_repeats: 1000
+
+optimizers:
+  all:
+    SGD:
+      lr: 0.01
+      momentum: 0.9
+
+models:
+  Feature_Extractor:
+    genomic_dim: 20
+    clinical_numerical_dim: 3
+    clinical_categorical_dim: 11
+    genomic_embedding_dim: 8
+    clinical_embedding_dim: 8
+  Task_Classifier:
+    task_dim: 3
+    genomic_embedding_dim: 8
+    clinical_embedding_dim: 8
+    output_dim: 1
+
+datasets:
+  project_ids: [TCGA-LUAD]
+  chosen_features:
+    gene_ids:
+      TCGA-LUAD: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+    clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
+    clinical_categorical_ids:
+      - gender
+      - race
+      - ethnicity
+  data_directory: Data/
+  cache_directory: Cache/
+  target_type: overall_survival
+  genomic_type: tpm
+  n_threads: 16
+
+
+  
+
+
+external_datasets:
+    project_id: [SCLC]
+    chosen_features: 
+      gene_ids: ['SLC2A1', 'HIF1A', 'ALCAM', 'KDM1A', 'CADM1', 'OCIAD1', 'EPCAM', 'CDC73', 'PRKRA', 'DHX9', 'HNRNPU', 'PTK7', 'STAU1', 'SSR1', 'KRR1', 'SERBP1', 'PUM1', 'CLTC','ESR1', 'EFTUD2']
+      #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+    data_dir: Data/sclc_ucologne_2015/
+    cache_directory: Cache/SCLC/
+    num_workers: 4
+    batch_size: 18
+
+datasets_manager:
+  type: TCGA_Datasets_Manager
+  TCGA_BLC:
+    train: true
+    batch_size: 128
+    num_folds: 5
+    test_split: 0.2
+    num_workers: 4

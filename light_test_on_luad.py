@@ -40,47 +40,27 @@ def main():
     # Create dataset manager.
     #here use torch lightning DS
     data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
+    data_test = {'TCGA_LUAD': TCGA_Program_Dataset(**config['external_datasets'])}
     
    
     
-    #add the external data
-    #external_testing_data = ExternalDataModule(**config['external_datasets']) #fix the config file
-    external_testing_data =ExternalDataModule(
-        project_id=['SCLC'],
-        data_dir='Data/sclc_ucologne_2015',
-        cache_directory='Cache/SCLC',
-        batch_size=9,
-        num_workers=4,
-        chosen_features={
-            #'gene_ids': {'TP53', 'RB1', 'TTN', 'RYR2', 'LRP1B', 'MUC16', 'ZFHX4', 'USH2A', 'CSMD3', 'NAV3', 'PCDH15', 'COL11A1', 'CSMD1', 'SYNE1', 'EYS', 'MUC17', 'ANKRD30B','FAM135B', 'FSIP2', 'TMEM132D'}, #other random genes
-            'gene_ids': {'ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU'}, #brca
-            #'gene_ids': {'SLC2A1', 'HIF1A', 'ALCAM', 'KDM1A', 'CADM1', 'OCIAD1', 'EPCAM', 'CDC73', 'PRKRA', 'DHX9', 'HNRNPU', 'PTK7', 'STAU1', 'SSR1', 'KRR1', 'SERBP1', 'PUM1', 'CLTC','ESR1', 'EFTUD2'}, #luad
-            #'gene_ids': {'ABCG2', 'RNF4', 'HNRNPL', 'ZBTB2', 'CD44', 'HNRNPA1', 'PUM1', 'SERBP1', 'ABCB1', 'TFCP2', 'EPCAM', 'PROM1', 'HNRNPU', 'ALDH1A1', 'HNRNPR', 'ABCC1', 'ALCAM', 'RPL4', 'DHX9', 'HNRNPK'}, #coad
-            'clinical_numerical_ids': ['overall_survival',  'vital_status','age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'],
-            'clinical_categorical_ids': ['gender', 'race', 'ethnicity']
-        },
-        graph_dataset=False,
-        ppi_score_name='escore',
-        ppi_score_threshold=0.0,
-        project_id_task_descriptor= 1
-
-    )
-
-    external_testing_data.setup()
+  
 
 
 
-    external_testing_dataloader = external_testing_data.test_dataloader()
+   
     #project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
     # graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0
     if 'TCGA_Balanced_Datasets_Manager' == config['datasets_manager']['type']:
         manager = TCGA_Balanced_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
+        manager_test = TCGA_Balanced_Datasets_Manager(datasets=data_test, config=config_add_subdict_key(config))
     else:
         manager = TCGA_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
+        manager_test = TCGA_Datasets_Manager(datasets=data_test, config=config_add_subdict_key(config))
 
-    # Cross validation, adapt the code for tensting on the external dataset batches
-    # still need to create he proper shuffling of the data
-    for key, values in manager['TCGA_BLC']['dataloaders'].items():
+
+
+    for (key, values),(key_test, values_test) in zip(manager['TCGA_BLC']['dataloaders'].items(), manager_test['TCGA_LUAD']['dataloaders'].items()):
         if isinstance(key, int) and config['cross_validation']:
             models, optimizers = create_models_and_optimizers(config)
             lit_model = LitFullModel(models, optimizers, config)
@@ -94,7 +74,7 @@ def main():
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
             trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
-            trainer.test(lit_model, dataloaders=test, verbose=False)
+            #trainer.test(lit_model, dataloaders=test, verbose=False)
             
             
             
@@ -102,7 +82,8 @@ def main():
         elif key == 'train':
             train = values
         elif key == 'test':
-            test = external_testing_dataloader #values
+            #select just LUAD
+            test = values_test
 
     # Train the final model.
     models, optimizers = create_models_and_optimizers(config)
