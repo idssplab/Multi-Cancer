@@ -44,6 +44,7 @@ def main():
     else:
         manager = TCGA_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
 
+    valid_results = []
     # Cross validation.
     for key, values in manager['TCGA_BLC']['dataloaders'].items():
         if isinstance(key, int) and config['cross_validation']:
@@ -57,12 +58,23 @@ def main():
                 enable_checkpointing=False,
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
+            trainer.test(lit_model, dataloaders=values['valid'], verbose=False) #verbose true prints the validation results for each fold
+            # print validation results
+            
+            valid_results.append(trainer.test(lit_model, dataloaders=values['valid'], verbose=False)[0])
+               
+            
             
         elif key == 'train':
             train = values
         elif key == 'test':
             test = values
+
+
+    # Print validation results.
+    valid_results = pd.DataFrame.from_records(valid_results)
+    for key, value in valid_results.describe().loc[['mean', 'std']].to_dict().items():
+        logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')
 
     # Train the final model.
     models, optimizers = create_models_and_optimizers(config)
@@ -72,7 +84,7 @@ def main():
         max_epochs=config['max_epochs'],
         enable_progress_bar=False,
         log_every_n_steps=1,
-        logger=False,
+        logger=True,
     )
     trainer.fit(lit_model, train_dataloaders=train)
 
