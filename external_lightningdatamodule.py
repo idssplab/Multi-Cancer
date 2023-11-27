@@ -50,7 +50,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.project_id_task_descriptor = project_id_task_descriptor
         self.data_dir = data_dir
         self.cache_directory = cache_directory
-        self.batch_size = batch_size
+        self.batch_size = 9#batch_size
         self.num_workers = num_workers
         self.project_id = project_id
         self.target_type = 'overall_survival'
@@ -268,7 +268,7 @@ class ExternalDataModule(pl.LightningDataModule):
         #check if there are any missing values
         self.logger.info('Total {} missing values'.format(self.data.isnull().sum().sum()))
         # save the data to a csv file to check the nan values
-        self.data.to_csv('format_ext_data.csv', index=True)
+        #self.data.to_csv('format_ext_data.csv', index=True)
 
     
 

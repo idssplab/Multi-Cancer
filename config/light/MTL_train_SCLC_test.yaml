@@ -52,6 +52,8 @@ external_datasets:
     data_dir: Data/sclc_ucologne_2015/
     cache_directory: Cache/SCLC/
     num_workers: 4
+    batch_size: 128
+    project_id_task_descriptor: 1
     
 
 datasets_manager:
