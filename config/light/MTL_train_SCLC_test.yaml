@@ -54,7 +54,7 @@ external_datasets:
     cache_directory: Cache/SCLC/
     num_workers: 4
     batch_size: 128
-    project_id_task_descriptor: 0
+    project_id_task_descriptor: 2
     
 
 datasets_manager:
