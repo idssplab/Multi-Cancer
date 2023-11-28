@@ -49,11 +49,12 @@ external_datasets:
     project_id: [SCLC]
     chosen_features: 
       gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+      
     data_dir: Data/sclc_ucologne_2015/
     cache_directory: Cache/SCLC/
     num_workers: 4
     batch_size: 128
-    project_id_task_descriptor: 1
+    project_id_task_descriptor: 0
     
 
 datasets_manager:
@@ -61,6 +62,6 @@ datasets_manager:
   TCGA_BLC:
     train: true
     batch_size: 128
-    num_folds: 2
+    num_folds: 5
     test_split: 0.2
     num_workers: 4
