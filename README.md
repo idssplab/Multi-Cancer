@@ -55,8 +55,14 @@ Each configuration file will give you the results for each of the modes and abla
 After the reviewing process, we created a Pytorch Lighning version of our model. For running this code, you need to run:
 
 ```jsx
-main.py -c config/ligth/[CONFIG NAME FILE]
+light.py -c config/light/[CONFIG NAME FILE]
 ```
+for the TCGA-only experiments. And:
+
+```jsx
+light_external.py -c config/light/[CONFIG NAME FILE]
+```
+for the configs that include "external" or "SCLC" in their filename.
 
 | Config Filename | Task | Notes | Table
 | --- | --- | --- |---|
