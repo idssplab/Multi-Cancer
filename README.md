@@ -1,6 +1,6 @@
 ---
-title: Bimodal Neural Network for Cancer Prognosis Prediction
-author:
+Title: Bimodal Neural Network for Cancer Prognosis Prediction
+Authors:
   - Bo-Run Wu
   - Tsung-Wei Lin
   - Zow Ormazabal
