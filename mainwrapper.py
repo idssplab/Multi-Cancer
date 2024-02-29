@@ -79,7 +79,21 @@ def gridsearch(config):
                 print('lr:', lr, 'mom:', mom, 'bs:', bs)
                 print('----------------------------------------')
 
-
+def gridsearch2(config):
+     #just vary  genomic_embedding_dim: 8
+      #clinical_embedding_dim: 8
+     # for both feature extractor and label classifier
+    embedding_dims = [2, 4, 6, 8,10, 12, 16]
+    grid = {'genomic_embedding_dim': embedding_dims, 'clinical_embedding_dim': embedding_dims}
+    for ged in grid['genomic_embedding_dim']:
+        for ced in grid['clinical_embedding_dim']:
+            config['models']["Feature_Extractor"]['args']['genomic_embedding_dim'] = ged
+            config['models']["Feature_Extractor"]['args']['clinical_embedding_dim'] = ced
+            config['models']["Label_Classifier"]['args']['genomic_embedding_dim'] = ged
+            config['models']["Label_Classifier"]['args']['clinical_embedding_dim'] = ced
+            main(config)
+            print('ged:', ged, 'ced:', ced)
+            print('----------------------------------------')
                 
                 
 
@@ -98,4 +112,4 @@ if __name__ == '__main__':
         CustomArgs(['-mom', '--momentum'], type=float, target='optimizer;args;momentum')
     ]
     config = ConfigParser.from_args(args, options)
-    gridsearch(config)
+    gridsearch2(config)
