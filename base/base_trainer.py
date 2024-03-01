@@ -276,6 +276,8 @@ class BaseTrainer(object):
             vital_status = vital_status.to(self.device, dtype=torch.float32, non_blocking=self.non_blocking)
 
             # Extract Features
+            self.logger.info(f'genomic: {genomic.shape}, clinical: {clinical.shape}, project_id: {project_id.shape}')
+
             embedding = self.list_models[0](genomic, clinical, project_id)
 
             # Label Classifier
