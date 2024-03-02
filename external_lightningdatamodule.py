@@ -283,7 +283,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
     
 
-    def setup(self, stage=None):
+    def setup(self, only_test = True):
         # Load the data files and split them into train, validation, and test sets
         #this dataset is only for testing 
         self.prepare_data()
@@ -291,7 +291,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
         self.normalize_clinical_data()
         self.concat_data()
-        self.split_data()
+        self.split_data(only_test = only_test)
         self.create_tensors()
 
     def create_tensors(self):
@@ -309,20 +309,17 @@ class ExternalDataModule(pl.LightningDataModule):
     def split_data(self, only_test = True):
             # Split the data into train, validation, and test sets
             if not only_test:
-                self.logger.info('Splitting data into train, validation, and test sets...')
-                train_data, val_data, test_data = [], [], []
+                self.logger.info('Splitting data into train and test sets...')
+                train_data, test_data = [], []
                 for project_id in self.project_id:
-                    project_data = self.data[self.data['project_id'] == project_id]
-                    project_data = project_data.sample(frac=1, random_state=self.random_state)
+                    project_data = self.data
+                    project_data = project_data.sample(frac=1)
                     num_samples = len(project_data)
-                    num_train_samples = int(num_samples * self.train_ratio)
-                    num_val_samples = int(num_samples * self.val_ratio)
-                    num_test_samples = num_samples - num_train_samples - num_val_samples
+                    num_train_samples = int(num_samples * 0.8)
                     train_data.append(project_data.iloc[:num_train_samples])
-                    val_data.append(project_data.iloc[num_train_samples:num_train_samples + num_val_samples])
-                    test_data.append(project_data.iloc[num_train_samples + num_val_samples:])
+                    test_data.append(project_data.iloc[num_train_samples:])
                 self.train_data = pd.concat(train_data)
-                self.val_data = pd.concat(val_data)
+                
                 self.test_data = pd.concat(test_data)
             else:
                 self.logger.info('Splitting data into test set...')
@@ -331,10 +328,10 @@ class ExternalDataModule(pl.LightningDataModule):
         
 
 
-    def DataLoader(self, data, shuffle=True):
+    def DataLoader(self, data, shuffle=True, drop_last=False):
         
 
-        data = self.test_data     
+        data = data     
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
         # Create a DataLoader from the TensorDataset
 
@@ -346,7 +343,9 @@ class ExternalDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             collate_fn=default_collate,
             pin_memory=True,
-            sampler=sampler
+            sampler=sampler,
+            drop_last=drop_last
+
         )
 
 
@@ -354,7 +353,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
 
     def train_dataloader(self):
-        return self.DataLoader(self.train_data, shuffle=True)
+        return self.DataLoader(self.train_data, shuffle=False, drop_last=True)
 
     def val_dataloader(self):
         return self.DataLoader(self.val_data, shuffle=False)
