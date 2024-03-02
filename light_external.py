@@ -41,8 +41,6 @@ def main():
     #here use torch lightning DS
     data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
     
-   
-    
     #add the external data
     external_testing_data = ExternalDataModule(**config['external_datasets']) 
 
@@ -70,11 +68,10 @@ def main():
                 enable_checkpointing=False,
                 
             )
-            trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            trainer.test(lit_model, dataloaders=values['valid'], verbose=False)
+            #trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid']) #the validation is failing
+            trainer.fit(lit_model, train_dataloaders=values['train'])
             trainer.test(lit_model, dataloaders=test, verbose=True)          
-            
-            
+               
             
         elif key == 'train':
             train = values

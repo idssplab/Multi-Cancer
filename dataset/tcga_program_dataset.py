@@ -199,6 +199,7 @@ class TCGA_Program_Dataset(BaseDataset):
 
             if len(self.chosen_clinical_categorical_ids):
                 df_clinical = pd.get_dummies(df_clinical, columns=self.chosen_clinical_categorical_ids, dtype=float)
+                
                 # add gender_male if not in the columns
                 if "gender_male" not in df_clinical.columns:
                     # 0 if gender_female is 1, 1 if gender_female is 0
@@ -206,7 +207,10 @@ class TCGA_Program_Dataset(BaseDataset):
                     # gender_male should go right after "gender_female"
                     col_order = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
                     df_clinical = df_clinical[col_order]
+                print(df_clinical.columns, 'df_clinical.columns', len(df_clinical.columns))
 
+                if "race_native hawaiian or other pacific islander" not in df_clinical.columns:
+                    df_clinical['race_native hawaiian or other pacific islander'] = 0
 
                 all_tcga_clinical_categorical_ids_latest_file_path = check_cache_files(
                     cache_directory=self.cache_directory.joinpath(project_id),

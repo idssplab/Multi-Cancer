@@ -193,7 +193,11 @@ class ExternalDataModule(pl.LightningDataModule):
     
         # CATEGORICAL COLS
 
-        self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)             
+        self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)  
+        #print(self.clinical_data.columns)
+        
+        # check that "gender_male" is still present
+                   
 
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
 
@@ -205,6 +209,13 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data.rename({'gender_Female': 'gender_female', 'gender_Male': 'gender_male', 'race_0.0':'race_not reported', 
                                    'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 'ethnicity_1.0':'ethnicity_not hispanic or latino' }, inplace=True, axis=1)
         
+        if "gender_male" not in self.clinical_data.columns:
+                    # 0 if gender_female is 1, 1 if gender_female is 0
+                    self.clinical_data['gender_male'] = 1 - self.clinical_data['gender_female']
+                    # gender_male should go right after "gender_female"
+                    col_order = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
+                    self.clinical_data = self.clinical_data[col_order]
+
         #add the binary columns: 'race_american indian or alaska native', 'race_black or african american', 'ethnicity_hispanic or latino'
 
         self.clinical_data['race_american indian or alaska native'] =0

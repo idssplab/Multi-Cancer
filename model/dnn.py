@@ -91,6 +91,9 @@ class Clinical_Feature_Extractor(BaseModel):
 
         # print one row of clinical
         #print(clinical[0,:]) #torch.Size([84, 13]), should be [128, 14]
+        #print(clinical[0,:].size())# this one should be 14, otherwise, a column is missing
+        #print(self.clinical_categorical_dim, self.clinical_numerical_dim)
+
 
         #good example:
         # tensor([-0.8596,  0.5041,  1.0049,  1.0000,  0.0000,  0.0000,  1.0000,  0.0000,
