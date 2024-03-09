@@ -15,6 +15,8 @@ from lit_models import LitFullModel
 from model import Classifier, Feature_Extractor, Graph_And_Clinical_Feature_Extractor, Task_Classifier
 from utils import config_add_subdict_key, get_logger, override_n_genes, set_random_seed, setup_logging
 import shap
+from captum.attr import IntegratedGradients
+import shap
 
 SEED = 1126
 set_random_seed(SEED)
@@ -84,11 +86,26 @@ def main():
         log_every_n_steps=1,
         logger=True,
     )
-    trainer.fit(lit_model, train_dataloaders=train)
+    #trainer.fit(lit_model, train_dataloaders=train)
 
-    # get SHAP values from trained model
-    explanation = shap.DeepExplainer(lit_model, train)
-    shap_values = explanation.shap_values(train)
+    #save trained model
+    #torch.save(lit_model.state_dict(), 'trained_model.pth')
+
+    #load trained model
+    lit_model.load_state_dict(torch.load('trained_model.pth'))    
+    #get one batch of data
+    batch = next(iter(train))
+    (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch     
+
+    # get SHAP values from trained model   
+    feat_extractor = models['feat_ext']
+    genomic_feat = feat_extractor.genomic_feature_extractor
+    #explanation = shap.GradientExplainer(feat_extractor, [genomic, clinical, project_id])
+    explanation = shap.DeepExplainer(genomic_feat, genomic)
+    #test_batch = next(iter(test))
+    #(genomic, clinical, index, project_id), (over
+    # all_survival, survival_time, vital_status) = test_batch
+    shap_values = explanation.shap_values(genomic)
     print(shap_values)
     # plot the SHAP values
     shap.summary_plot(shap_values, train)

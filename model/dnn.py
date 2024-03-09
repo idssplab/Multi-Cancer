@@ -87,25 +87,6 @@ class Clinical_Feature_Extractor(BaseModel):
 
         clinical = clinical.type(torch.float32)
 
-        # check size of categorical
-
-        # print one row of clinical
-        #print(clinical[0,:]) #torch.Size([84, 13]), should be [128, 14]
-        #print(clinical[0,:].size())# this one should be 14, otherwise, a column is missing
-        #print(self.clinical_categorical_dim, self.clinical_numerical_dim)
-
-
-        #good example:
-        # tensor([-0.8596,  0.5041,  1.0049,  1.0000,  0.0000,  0.0000,  1.0000,  0.0000,
-        #  0.0000,  0.0000,  0.0000,  1.0000,  0.0000,  0.0000], device='cuda:0')
-        #('age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander')
-
-        #Bad example: # GENDER MALE IS MISSING
-        # tensor([-0.1298,  1.0855,  0.5105,  1.0000,  0.0000,  0.0000,  0.0000,  0.0000,
-        #  1.0000,  0.0000,  0.0000,  0.0000,  1.0000], device='cuda:0')
-        #('age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'race_american indian or alaska native', 'race_asian', 
-        # 'race_black or african american', 'race_native hawaiian or other pacific islander', 'race_not reported', 'race_white', 
-        #'ethnicity_hispanic or latino', 'ethnicity_not hispanic or latino', 'ethnicity_not reported')
 
         clinical_numerical, clinical_categorical = torch.split(
             clinical,

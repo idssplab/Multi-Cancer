@@ -3,6 +3,7 @@ import torch
 import torchmetrics
 
 from utils.runner.metric import youden_j, c_index
+import shap
 
 
 class LitFullModel(pl.LightningModule):
@@ -43,6 +44,14 @@ class LitFullModel(pl.LightningModule):
     def _shared_eval(self, batch, batch_idx):
         
         (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        # feat_extractor = self.feat_ext
+        # explanation = shap.DeepExplainer(feat_extractor, train)
+        # shap_values = explanation.shap_values(train)
+        # print(shap_values)
+        # # plot the SHAP values
+        # shap.summary_plot(shap_values, train)
+        # #save the plot
+        #shap.save_html(log_path + 'shap_values.html', shap_values, train)
         y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
         loss = torch.nn.functional.binary_cross_entropy_with_logits(y, overall_survival)
         self.step_results.append({
