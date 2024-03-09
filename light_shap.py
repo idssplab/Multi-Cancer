@@ -17,6 +17,11 @@ from utils import config_add_subdict_key, get_logger, override_n_genes, set_rand
 import shap
 from captum.attr import IntegratedGradients
 import shap
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+import numpy as np
+import seaborn as sns
 
 SEED = 1126
 set_random_seed(SEED)
@@ -95,7 +100,16 @@ def main():
     lit_model.load_state_dict(torch.load('trained_model.pth'))    
     #get one batch of data
     batch = next(iter(train))
-    (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch     
+    (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+
+    # if project_id == 0:
+    #     feature_ids = ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
+    # elif project_id == 1:  
+    #     feature_ids= ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+    # else:
+    #     feature_ids= ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+    
+         
 
     # get SHAP values from trained model   
     feat_extractor = models['feat_ext']
@@ -108,9 +122,30 @@ def main():
     shap_values = explanation.shap_values(genomic)
     print(shap_values)
     # plot the SHAP values
-    shap.summary_plot(shap_values, train)
-    #save the plot
-    shap.save_html(log_path + 'shap_values.html', shap_values, train)
+    shap.summary_plot(shap_values, genomic.numpy()) #, feature_names = feature_ids )  # Convert to numpy if 'genomic' is a tensor
+    #rename features
+
+
+    plt.savefig('shap_values.png')
+
+
+    
+
+    # get SHAP values for all the training data, going through all the batches
+    all_shap_values = []
+    for batch in train:
+        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        shap_values = explanation.shap_values(genomic)
+        all_shap_values.append(shap_values)
+    all_shap_values = np.concatenate(all_shap_values, axis=1)
+    shap_values_df = pd.DataFrame(all_shap_values)
+    correlation_matrix = all_shap_values.corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation_matrix, annot=True, fmt=".2f", cmap='coolwarm')
+    plt.title('Correlation matrix of SHAP values')
+    plt.savefig('SHAPcorrelation_matrix.png')
+        
+
 
 
 
