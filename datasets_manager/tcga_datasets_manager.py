@@ -296,3 +296,7 @@ class TCGA_Balanced_Datasets_Manager(BaseDatasetsManager):
             kfold_samplers[fold] = split_samplers
 
         return kfold_samplers
+    
+    @staticmethod
+    def get_gen_features(self):
+        return self.datasets.genomic_ids()
