@@ -110,6 +110,7 @@ class TCGA_Program_Dataset(BaseDataset):
         self.logger.info('Overall survival imbalance ratio {} %'.format(
             sum(self.overall_survivals) / len(self.overall_survivals) * 100
         ))
+        self.logger.info('AUPRC baseline (total set){} %'.format( self.overall_survivals.sum() / len(self.overall_survivals) * 100))
         self.logger.info('Disease specific survival event rate {} %'.format(
             sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
         ))
@@ -175,6 +176,7 @@ class TCGA_Program_Dataset(BaseDataset):
                     train_indices = indices_cache['train']
                     test_indices = indices_cache['test']
 
+                   
                     clinical_mean = df_clinical[self.chosen_clinical_numerical_ids].iloc[train_indices].mean()
                     clinical_std = df_clinical[self.chosen_clinical_numerical_ids].iloc[train_indices].std()
 
@@ -231,6 +233,8 @@ class TCGA_Program_Dataset(BaseDataset):
                     df_clinical = df_clinical.reindex(
                         columns=self.chosen_clinical_numerical_ids + df_all_tcga_clinical_categorical_ids.tolist()
                     ).fillna(0)
+
+            
 
             df_vital_status = tcga_project.vital_status.T
             df_overall_survival = tcga_project.overall_survival.T
@@ -333,6 +337,11 @@ class TCGA_Program_Dataset(BaseDataset):
             if file_path.is_file():
                 file_path.unlink()
                 self.logger.debug('Removing redundant indices file {}'.format(file_path))
+
+        #print AUPRC baseline for the test set
+        #self.logger.info('AUPRC baseline (test set){} %'.format( self._overall_survivals[test_patient_ids].sum() / len(self.overall_survivals[test_patient_ids]) * 100))
+        #self.logger.info('AUPRC baseline (train set){} %'.format( tcga_project.overall_survival[train_indices].sum() / len(tcga_project.overall_survival[train_indices]) * 100))
+
 
         np.savez(self.cache_directory.joinpath(f'indices_{datetime.now().strftime("%Y%m%d%H%M%S")}.npz'), **indices)
         self.logger.info('Saving train and test indices to {}'.format(self.cache_directory))

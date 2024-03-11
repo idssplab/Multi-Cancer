@@ -1,0 +1,139 @@
+bootstrap_repeats: 50
+cross_validation: true
+datasets:
+  cache_directory: Cache/
+  chosen_features:
+    clinical_categorical_ids:
+    - gender
+    - race
+    - ethnicity
+    clinical_numerical_ids:
+    - age_at_diagnosis
+    - year_of_diagnosis
+    - year_of_birth
+    gene_ids:
+      TCGA-BRCA:
+      - ESR1
+      - EFTUD2
+      - HSPA8
+      - STAU1
+      - SHMT2
+      - ACTB
+      - GSK3B
+      - YWHAB
+      - UBXN6
+      - PRKRA
+      - BTRC
+      - DDX23
+      - SSR1
+      - TUBA1C
+      - SNIP1
+      - SRSF5
+      - ERBB2
+      - MKI67
+      - PGR
+      - PLAU
+      TCGA-COAD:
+      - HNRNPL
+      - HNRNPU
+      - HNRNPA1
+      - ZBTB2
+      - SERBP1
+      - RPL4
+      - HNRNPK
+      - HNRNPR
+      - TFCP2
+      - DHX9
+      - RNF4
+      - PUM1
+      - ABCC1
+      - CD44
+      - ALCAM
+      - ABCG2
+      - ALDH1A1
+      - ABCB1
+      - EPCAM
+      - PROM1
+      TCGA-LUAD:
+      - HNRNPU
+      - STAU1
+      - KDM1A
+      - SERBP1
+      - DHX9
+      - EMC1
+      - SSR1
+      - PUM1
+      - CLTC
+      - PRKRA
+      - KRR1
+      - OCIAD1
+      - CDC73
+      - SLC2A1
+      - HIF1A
+      - PKM
+      - CADM1
+      - EPCAM
+      - ALCAM
+      - PTK7
+  data_directory: Data/
+  genomic_type: tpm
+  n_threads: 16
+  project_ids:
+  - TCGA-BRCA
+  - TCGA-LUAD
+  - TCGA-COAD
+  target_type: overall_survival
+datasets_manager:
+  TCGA_BLC:
+    batch_size: 128
+    num_folds: 4
+    num_workers: 4
+    test_split: 0.2
+    train: true
+  type: TCGA_Balanced_Datasets_Manager
+max_epochs: 50
+model.clf: "Model Structure:\nTask_Classifier(\n  (task_embedding): Embedding(3, 8)\n\
+  \  (combine_layer): Sequential(\n    (0): Linear(in_features=16, out_features=8,\
+  \ bias=True)\n    (1): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n\
+  \    (2): Softsign()\n  )\n  (classifier): Sequential(\n    (0): Linear(in_features=8,\
+  \ out_features=8, bias=True)\n    (1): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True,\
+  \ track_running_stats=True)\n    (2): Softsign()\n    (3): Linear(in_features=8,\
+  \ out_features=1, bias=True)\n  )\n)\nTrainable parameters: 273"
+model.feat_ext: "Model Structure:\nFeature_Extractor(\n  (genomic_feature_extractor):\
+  \ Genomic_Feature_Extractor(\n    (genomic_feature_extractor): Sequential(\n   \
+  \   (0): Linear(in_features=20, out_features=8, bias=True)\n      (1): BatchNorm1d(8,\
+  \ eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n      (2): Linear(in_features=8,\
+  \ out_features=8, bias=True)\n      (3): BatchNorm1d(8, eps=1e-05, momentum=0.1,\
+  \ affine=True, track_running_stats=True)\n      (4): Linear(in_features=8, out_features=8,\
+  \ bias=True)\n      (5): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n\
+  \    )\n  )\n  (clinical_feature_extractor): Clinical_Feature_Extractor(\n    (clinical_categorical_embedding):\
+  \ Embedding(11, 5)\n    (clinical_feature_encoder): Sequential(\n      (0): Linear(in_features=8,\
+  \ out_features=8, bias=True)\n      (1): BatchNorm1d(8, eps=1e-05, momentum=0.1,\
+  \ affine=True, track_running_stats=True)\n      (2): Linear(in_features=8, out_features=8,\
+  \ bias=True)\n      (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n\
+  \      (4): Linear(in_features=8, out_features=8, bias=True)\n      (5): BatchNorm1d(8,\
+  \ eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    )\n  )\n\
+  )\nTrainable parameters: 679"
+models:
+  Feature_Extractor:
+    clinical_categorical_dim: 11
+    clinical_embedding_dim: 8
+    clinical_numerical_dim: 3
+    genomic_dim: 20
+    genomic_embedding_dim: 8
+  Task_Classifier:
+    clinical_embedding_dim: 8
+    genomic_embedding_dim: 8
+    output_dim: 1
+    task_dim: 3
+n_gpu: 1
+optimizers:
+  clf:
+    SGD:
+      lr: 0.01
+      momentum: 0.9
+  feat_ext:
+    SGD:
+      lr: 0.01
+      momentum: 0.9
+pin_memory: true
