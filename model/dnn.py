@@ -14,8 +14,8 @@ class Genomic_Feature_Extractor(BaseModel):
             nn.BatchNorm1d(self.genomic_embedding_dim),
             nn.Linear(self.genomic_embedding_dim, self.genomic_embedding_dim),
             nn.BatchNorm1d(self.genomic_embedding_dim),
-            nn.Linear(self.genomic_embedding_dim, self.genomic_embedding_dim),
-            nn.BatchNorm1d(self.genomic_embedding_dim)
+            # nn.Linear(self.genomic_embedding_dim, self.genomic_embedding_dim),
+            # nn.BatchNorm1d(self.genomic_embedding_dim)
         )
 
         self.initialization()
@@ -65,8 +65,8 @@ class Clinical_Feature_Extractor(BaseModel):
             nn.BatchNorm1d(self.clinical_embedding_dim),
             nn.Linear(self.clinical_embedding_dim, self.clinical_embedding_dim),
             nn.BatchNorm1d(self.clinical_embedding_dim),
-            nn.Linear(self.clinical_embedding_dim, self.clinical_embedding_dim),
-            nn.BatchNorm1d(self.clinical_embedding_dim)
+            # nn.Linear(self.clinical_embedding_dim, self.clinical_embedding_dim),
+            # nn.BatchNorm1d(self.clinical_embedding_dim)
         )
         self.initialization()
 
