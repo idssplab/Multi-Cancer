@@ -42,7 +42,8 @@ def main():
 
     n_splits_outer = 5
     n_splits_inner = 4
-    outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
+    #outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
+    outer_cv = manager.get_kfold_samplers(data, n_splits_outer)
 
     outer_results = []
 
@@ -50,7 +51,8 @@ def main():
         train_data, test_data = data['TCGA_BLC'][train_idx], data['TCGA_BLC'][test_idx]
 
         # Inner loop for model selection and hyperparameter tuning
-        inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
+        inner_cv = manager.get_kfold_samplers(data, n_splits_inner)
+        #inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
         inner_results = []
 
         for inner_train_idx, inner_val_idx in inner_cv.split(train_data):
