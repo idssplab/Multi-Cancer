@@ -50,7 +50,8 @@ class ExternalDataModule(pl.LightningDataModule):
         self.project_id_task_descriptor = project_id_task_descriptor
         self.data_dir = data_dir
         self.cache_directory = cache_directory
-        self.batch_size = 9#batch_size
+        self.batch_size = batch_size
+        print('batch size', self.batch_size)
         self.num_workers = num_workers
         self.project_id = project_id
         self.target_type = 'overall_survival'
@@ -188,17 +189,10 @@ class ExternalDataModule(pl.LightningDataModule):
         self.logger.info('Normalize clinical numerical data using all samples')
         # Impute the missing values with mean
         #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
-        
         self.preprocess_clinical_numeric_data()        
-
-    
         # CATEGORICAL COLS
-
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)  
-        #print(self.clinical_data.columns)
-        
-        # check that "gender_male" is still present
-                   
+        # check that "gender_male" is still present                  
 
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
 
@@ -230,43 +224,24 @@ class ExternalDataModule(pl.LightningDataModule):
         'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
         'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
 
-        
-
-       
-        
-   
-        
-       
-
-        
-
     def log_data_info(self):
                 # Log the information of the dataset.
         self.logger.info('Creating a TCGA Program Dataset with {} Projects...'.format(len(self.project_id)))
-        self.logger.info('Batch size {}'.format(self.batch_size))
+        self.logger.info('Batch size external {}'.format(self.batch_size))
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_features), len(self.clinical_features)
         ))
         self.logger.info('Target Type {}'.format(self.target_type)) #Target Type overall_survival
-        # self.logger.info('Overall survival imbalance ratio {} %'.format(
-        #     sum(self.overall_survivals) / len(self.overall_survivals) * 100
-        # ))
-        # self.logger.info('Number of survivals {}, of a total of{}'.format(  sum( self.overall_survivals), len(self.overall_survivals)))
+       
         
     def concat_data(self):
-        # Concatenate the genomic and clinical data , having the genes and clinical features as columns       
-        
-        
+        # Concatenate the genomic and clinical data , having the genes and clinical features as columns     
+               
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
-
         
+        self.data['project_id'] =self.project_id_task_descriptor
 
-        
-        # fill all project ids with self.project_id
-        
-        self.data['project_id'] =self.project_id_task_descriptor #temporary value
-
-        #get rid of object type columns
+        #get rid of object type columns if present
         self.data = self.data.select_dtypes(exclude=['object'])       
         
         self.logger.info('Total {} samples'.format(len(self.data)))
@@ -275,8 +250,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.logger.info('Overall survival imbalance ratio {} %'.format(
             sum(self.data['overall_survival']) / len(self.data['overall_survival']) * 100
         ))
-        #self.logger.info('Number of survivals {}, of a total of {}'.format(  sum( self.data['overall_survival']), len(self.data['overall_survival'])))
-
+        
         #check if there are any missing values
         self.logger.info('Total {} missing values'.format(self.data.isnull().sum().sum()))
         # save the data to a csv file to check the nan values
@@ -285,22 +259,19 @@ class ExternalDataModule(pl.LightningDataModule):
     
 
     def setup(self, only_test = True):
-        # Load the data files and split them into train, validation, and test sets
+     
         #this dataset is only for testing 
         self.prepare_data()
         self.get_chosen_features(self.chosen_features)
-        
         self.normalize_clinical_data()
         self.concat_data()
         self.split_data(only_test = only_test)
         self.create_tensors()
 
     def create_tensors(self):
-     
-               
+                   
         #get rid of the ID column
         self.genomic_data = self.genomic_data.drop(columns=['Unnamed: 0'])
-
         self._genomics = torch.tensor(self.genomic_data.values, dtype=torch.float32)
         self._clinicals = torch.tensor(self.clinical_data.values, dtype=torch.float32)
         self.targets = torch.tensor(self.overall_survivals.values, dtype=torch.float32)
@@ -335,10 +306,7 @@ class ExternalDataModule(pl.LightningDataModule):
         data = data     
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
         # Create a DataLoader from the TensorDataset
-
         sampler = RandomSampler( data_source=dataset, replacement=True, num_samples=len(dataset))   
-
-
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,

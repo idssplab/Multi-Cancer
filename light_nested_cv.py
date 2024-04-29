@@ -14,91 +14,75 @@ from datasets_manager import TCGA_Balanced_Datasets_Manager, TCGA_Datasets_Manag
 from lit_models import LitFullModel
 from model import Classifier, Feature_Extractor, Graph_And_Clinical_Feature_Extractor, Task_Classifier
 from utils import config_add_subdict_key, get_logger, override_n_genes, set_random_seed, setup_logging
-from external_lightningdatamodule import ExternalDataModule
 
 SEED = 1126
 set_random_seed(SEED)
 
+import numpy as np
+from sklearn.model_selection import KFold
 
 def main():
-    # Select a config file.
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', type=str, help='Path to the config file.', required=True)
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    override_n_genes(config)                                                    # For multi-task graph models.
+    override_n_genes(config)
     config_name = Path(args.config).stem
-
-    # Setup logging.
-    log_path = f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/'
-    setup_logging(log_path)
-    #setup_logging(log_path := f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/')
+    setup_logging(log_path := f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/')
     logger = get_logger(config_name)
     logger.info(f'Using Random Seed {SEED} for this experiment')
-    get_logger('lightning.pytorch.accelerators.cuda', log_level='WARNING')      # Disable cuda logging.
-    filterwarnings('ignore', r'.*Skipping val loop.*')                          # Disable val loop warning.
-
-    # Create dataset manager.
-    #here use torch lightning DS
-    data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
     
-    #add the external data
-    external_testing_data = ExternalDataModule(**config['external_datasets']) 
-
-    external_testing_data.setup()
-
-    external_testing_dataloader = external_testing_data.test_dataloader()
-    #project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
-    # graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0
+    data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
     if 'TCGA_Balanced_Datasets_Manager' == config['datasets_manager']['type']:
         manager = TCGA_Balanced_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
     else:
         manager = TCGA_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
 
-    # Cross validation, adapt the code for tensting on the external dataset batches
-    # still need to create he proper shuffling of the data
-    for key, values in manager['TCGA_BLC']['dataloaders'].items():
-        if isinstance(key, int) and config['cross_validation']:
+
+    n_splits_outer = 5
+    n_splits_inner = 4
+    outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
+
+    outer_results = []
+
+    for train_idx, test_idx in outer_cv.split(data['TCGA_BLC']):
+        train_data, test_data = data['TCGA_BLC'][train_idx], data['TCGA_BLC'][test_idx]
+
+        # Inner loop for model selection and hyperparameter tuning
+        inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
+        inner_results = []
+
+        for inner_train_idx, inner_val_idx in inner_cv.split(train_data):
+            inner_train_data, inner_val_data = train_data[inner_train_idx], train_data[inner_val_idx]
+
+            # Model training
             models, optimizers = create_models_and_optimizers(config)
             lit_model = LitFullModel(models, optimizers, config)
-            trainer = pl.Trainer(                                               # Create sub-folders for each fold.
-                default_root_dir=log_path,
-                max_epochs=config['max_epochs'],
-                log_every_n_steps=1,
-                enable_model_summary=False,
-                enable_checkpointing=False,
-                
-            )
-            #trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid']) #the validation is failing
-            trainer.fit(lit_model, train_dataloaders=values['train'])
-            trainer.test(lit_model, dataloaders=test, verbose=True)          
-               
+            trainer = pl.Trainer(default_root_dir=log_path, max_epochs=config['max_epochs'])
+            trainer.fit(lit_model, train_dataloaders=inner_train_data, val_dataloaders=inner_val_data)
             
-        elif key == 'train':
-            train = values
-        elif key == 'test':
-            test = external_testing_dataloader #values
+            # Validate the model
+            validation_result = trainer.test(lit_model, dataloaders=inner_val_data, verbose=False)
+            inner_results.append(validation_result)
 
-    # Train the final model.
-    models, optimizers = create_models_and_optimizers(config)
-    lit_model = LitFullModel(models, optimizers, config)
-    trainer = pl.Trainer(
-        default_root_dir=log_path,
-        max_epochs=config['max_epochs'],
-        enable_progress_bar=False,
-        log_every_n_steps=1,
-        logger=False,
-    )
-    trainer.fit(lit_model, train_dataloaders=train)
+        # Select the best model based on inner loop
+        best_model_idx = np.argmax([result['val_acc'] for result in inner_results])  # Example metric
+        best_model = models[best_model_idx]
 
-    # Test the final model.
-    bootstrap_results = []
-    for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):       
-        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0]) 
-    bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
-    for key, value in bootstrap_results.describe().loc[['mean', 'std']].to_dict().items():
+        # Test the best model
+        final_trainer = pl.Trainer(default_root_dir=log_path, max_epochs=config['max_epochs'])
+        test_result = final_trainer.test(best_model, dataloaders=test_data, verbose=False)
+        outer_results.append(test_result)
+
+    # Aggregate and report results from outer loop
+    outer_results_df = pd.DataFrame.from_records(outer_results)
+    for key, value in outer_results_df.describe().loc[['mean', 'std']].to_dict().items():
         logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')
+
+
+
+
 
 
 def create_models_and_optimizers(config: dict):

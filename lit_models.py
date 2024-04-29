@@ -80,10 +80,6 @@ class LitFullModel(pl.LightningModule):
             try:         
                 cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             except ZeroDivisionError: #sometimes vital status is all 0 or 1
-                # print('ZeroDivisionError')
-                # print(outputs[mask])
-                # print(survival_time[mask])
-                # print(vital_status[mask])
                 cindex = 0  
             self.log(f'Youden_{i}', thres, on_epoch=True, on_step=False)
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
