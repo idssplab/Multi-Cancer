@@ -31,7 +31,7 @@ class CustomDataset(torch.utils.data.Dataset):
             
             clinical = row[self.clinical_features].values
             
-            index = index#row['PATIENT_ID']
+            index = index
             project_id = row['project_id']
             overall_survival = row['overall_survival']
             survival_time = row['survival_time']
@@ -182,6 +182,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
         self.vital_status = self.clinical_data['vital_status']
+        
 
     def normalize_clinical_data(self):
         self.logger.info('Normalize clinical numerical data using all samples')

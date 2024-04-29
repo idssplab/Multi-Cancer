@@ -76,8 +76,16 @@ class LitFullModel(pl.LightningModule):
         for i in torch.unique(project_id):
             mask = project_id == i
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
-            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')            
-            cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
+            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')   
+            try:         
+                cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
+            except ZeroDivisionError: #sometimes vital status is all 0 or 1
+                # print('ZeroDivisionError')
+                # print(outputs[mask])
+                # print(survival_time[mask])
+                # print(vital_status[mask])
+                cindex = 0  
+            self.log(f'Youden_{i}', thres, on_epoch=True, on_step=False)
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
             self.log(f'C-Index_{i}', cindex, on_epoch=True, on_step=False)

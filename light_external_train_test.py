@@ -43,6 +43,7 @@ def main():
     #data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
     
     #add the external data
+    #use same file as for the MTL trained on TCGA, but tested on SCLC
     external_testing_data = ExternalDataModule(**config['external_datasets']) 
 
     

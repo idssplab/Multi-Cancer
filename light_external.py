@@ -31,7 +31,9 @@ def main():
     config_name = Path(args.config).stem
 
     # Setup logging.
-    setup_logging(log_path := f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/')
+    log_path = f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/'
+    setup_logging(log_path)
+    #setup_logging(log_path := f'Logs/{config_name}/{datetime.now():%Y-%m-%dT%H:%M:%S}/')
     logger = get_logger(config_name)
     logger.info(f'Using Random Seed {SEED} for this experiment')
     get_logger('lightning.pytorch.accelerators.cuda', log_level='WARNING')      # Disable cuda logging.
