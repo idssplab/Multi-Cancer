@@ -41,7 +41,7 @@ def main():
 
 
     n_splits_outer = 5
-    n_splits_inner = 4
+    n_splits_inner = 5
     #outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
     outer_cv = manager.get_kfold_samplers(data, n_splits_outer)
 

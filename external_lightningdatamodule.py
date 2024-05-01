@@ -300,7 +300,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
 
 
-    def DataLoader(self, data, shuffle=True, drop_last=False):
+    def DataLoader(self, data, shuffle=False, drop_last=False):
         
 
         data = data     
