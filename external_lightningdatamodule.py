@@ -51,7 +51,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.cache_directory = cache_directory
         self.batch_size = batch_size
-        print('batch size', self.batch_size)
+        
         self.num_workers = num_workers
         self.project_id = project_id
         self.target_type = 'overall_survival'
@@ -226,7 +226,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def log_data_info(self):
                 # Log the information of the dataset.
-        self.logger.info('Creating a TCGA Program Dataset with {} Projects...'.format(len(self.project_id)))
+        
         self.logger.info('Batch size external {}'.format(self.batch_size))
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_features), len(self.clinical_features)
