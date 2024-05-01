@@ -1,8 +1,8 @@
 n_gpu: 1
 pin_memory: true
 max_epochs: 50
-cross_validation: false
-bootstrap_repeats: 10
+cross_validation: true
+bootstrap_repeats: 1000
 
 optimizers:
   feat_ext:

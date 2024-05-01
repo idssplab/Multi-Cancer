@@ -180,6 +180,14 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
         self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
 
+        # for row in self.clinical_data.iterrows():
+        #     if row['vital_status'] == 0:
+        #         if row['overall_survival'] <= 60:
+
+        #             print(row['overall_survival'], row['vital_status'])
+
+        # If a row had overall survival of less than 60 days and the patient was alive, change survival status to 1
+        self.clinical_data.loc[(self.clinical_data['overall_survival'] == 0) & (self.clinical_data['vital_status'] == 'Alive'), 'overall_survival'] = 1
 
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
