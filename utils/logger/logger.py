@@ -40,3 +40,7 @@ def get_logger(name, log_level='DEBUG'):
     logger = logging.getLogger(name)
     logger.setLevel(LOG_LEVELS[log_level])
     return logger
+
+class SuppressShuffleWarning(logging.Filter):
+    def filter(self, record):
+        return 'shuffling enabled' not in record.getMessage()
