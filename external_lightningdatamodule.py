@@ -180,9 +180,6 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
         self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
 
-        # Special case in which the vital status is dead but the survival time is greater than 5 years
-        # This is a mistake in the data
-        
 
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
