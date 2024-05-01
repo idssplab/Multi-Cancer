@@ -171,14 +171,18 @@ class ExternalDataModule(pl.LightningDataModule):
         #the std is 0 for year_of_diagnosis, all samples were taken in 2015
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
-        #remove nan values from vital status, replace nan values with 0
-        self.clinical_data['vital_status'] = self.clinical_data['vital_status'].fillna(0)
-        self.clinical_data['survival_time'] = self.clinical_data['disease_specific_survival']
+        #remove nan values from vital status
+        self.clinical_data['vital_status'] = self.clinical_data['vital_status'] 
+        self.clinical_data['survival_time'] = self.clinical_data['overall_survival']
 
         # Transform the disease specific survival and overall survival to binary
         months_threshold = 60 # 5 years 
         self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
         self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
+
+        # Special case in which the vital status is dead but the survival time is greater than 5 years
+        # This is a mistake in the data
+        
 
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 

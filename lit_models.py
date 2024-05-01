@@ -54,6 +54,7 @@ class LitFullModel(pl.LightningModule):
             'vital_status': vital_status.detach().cpu(),
             'project_id': project_id.detach().cpu(),
         })
+        
         return loss
     
     def shared_eval_for_checking(self, batch, batch_idx):
@@ -82,10 +83,10 @@ class LitFullModel(pl.LightningModule):
         vital_status = torch.cat([result['vital_status'] for result in self.step_results])
         project_id = torch.cat([result['project_id'] for result in self.step_results])
 
-        # self.log('Outputs', outputs, on_epoch=True, on_step=False)
-        # self.log('Labels', labels, on_epoch=True, on_step=False)
-        # self.log('Survival_Time', survival_time, on_epoch=True, on_step=False)
-        # self.log('Vital_Status', vital_status, on_epoch=True, on_step=False)
+        self.log('Outputs', outputs, on_epoch=True, on_step=False)
+        self.log('Labels', labels, on_epoch=True, on_step=False)
+        self.log('Survival_Time', survival_time, on_epoch=True, on_step=False)
+        self.log('Vital_Status', vital_status, on_epoch=True, on_step=False)
         thres = youden_j(outputs, labels).astype('float')
         for i in torch.unique(project_id):
             mask = project_id == i
@@ -120,4 +121,5 @@ class LitFullModel(pl.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
         y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
+        
         return y.detach().cpu().numpy()
