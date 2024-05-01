@@ -55,6 +55,22 @@ class LitFullModel(pl.LightningModule):
             'project_id': project_id.detach().cpu(),
         })
         return loss
+    
+    def shared_eval_for_checking(self, batch, batch_idx):
+        
+        (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
+        
+        y = self.classifier(self.feat_ext(genomic, clinical, project_id), project_id)
+        loss = torch.nn.functional.binary_cross_entropy_with_logits(y, overall_survival)
+        step_results = {
+            'output': y.detach().cpu(),
+            'label': overall_survival.detach().cpu().type(torch.int64),
+            'survival_time': survival_time.detach().cpu(),
+            'vital_status': vital_status.detach().cpu(),
+            'project_id': project_id.detach().cpu(),
+        }
+        self.log(step_results, on_epoch=True, on_step=True)
+        
 
     def _shared_epoch_end(self) -> None:
         outputs = torch.cat([result['output'] for result in self.step_results])
