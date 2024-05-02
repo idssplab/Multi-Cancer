@@ -209,7 +209,7 @@ class TCGA_Program_Dataset(BaseDataset):
                     # gender_male should go right after "gender_female"
                     col_order = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
                     df_clinical = df_clinical[col_order]
-                print(df_clinical.columns, 'df_clinical.columns', len(df_clinical.columns))
+                #print(df_clinical.columns, 'df_clinical.columns', len(df_clinical.columns))
 
                 if "race_native hawaiian or other pacific islander" not in df_clinical.columns:
                     df_clinical['race_native hawaiian or other pacific islander'] = 0
@@ -326,7 +326,7 @@ class TCGA_Program_Dataset(BaseDataset):
         self._patient_ids = tuple(df_totals.index.to_list())
         self._genomic_ids = tuple(df_genomics.columns.to_list())
         self._clinical_ids = tuple(df_clinicals.columns.to_list())
-        print("clinical ids training models", self._clinical_ids)
+        #print("clinical ids training models", self._clinical_ids)
 
         indices = {
             'train': np.array([i for i, patient_id in enumerate(self._patient_ids) if patient_id in train_patient_ids]),
