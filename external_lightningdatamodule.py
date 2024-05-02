@@ -177,8 +177,11 @@ class ExternalDataModule(pl.LightningDataModule):
 
         # Transform the disease specific survival and overall survival to binary
         months_threshold = 60 # 5 years 
-        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
-        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
+        # self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
+        # self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
+        # TODO: CHECK HERE - try opposite truth evaluation
+        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
+        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
 
 
         
@@ -229,11 +232,11 @@ class ExternalDataModule(pl.LightningDataModule):
     def log_data_info(self):
                 # Log the information of the dataset.
         
-        self.logger.info('Batch size external {}'.format(self.batch_size))
-        self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
+        self.logger.info('External DS - Batch size {}'.format(self.batch_size))
+        self.logger.info('External DS - Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_features), len(self.clinical_features)
         ))
-        self.logger.info('Target Type {}'.format(self.target_type)) #Target Type overall_survival
+        self.logger.info('External DS - Target Type {}'.format(self.target_type)) #Target Type overall_survival
        
         
     def concat_data(self):
@@ -246,15 +249,15 @@ class ExternalDataModule(pl.LightningDataModule):
         #get rid of object type columns if present
         self.data = self.data.select_dtypes(exclude=['object'])       
         
-        self.logger.info('Total {} samples'.format(len(self.data)))
-        self.logger.info('Total {} features'.format(len(self.data.columns)))
+        self.logger.info('External DS - Total {} samples'.format(len(self.data)))
+        self.logger.info('External DS - Total {} features'.format(len(self.data.columns)))
 
-        self.logger.info('Overall survival imbalance ratio {} %'.format(
+        self.logger.info('External DS - Overall survival imbalance ratio {} %'.format(
             sum(self.data['overall_survival']) / len(self.data['overall_survival']) * 100
         ))
         
         #check if there are any missing values
-        self.logger.info('Total {} missing values'.format(self.data.isnull().sum().sum()))
+        self.logger.info('External DS - Total {} missing values'.format(self.data.isnull().sum().sum()))
         # save the data to a csv file to check the nan values
         #self.data.to_csv('format_ext_data.csv', index=True)
 
