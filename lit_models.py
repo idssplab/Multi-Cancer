@@ -82,10 +82,10 @@ class LitFullModel(pl.LightningModule):
         vital_status = torch.cat([result['vital_status'] for result in self.step_results])
         project_id = torch.cat([result['project_id'] for result in self.step_results])
 
-        self.log('Outputs', outputs, on_epoch=True, on_step=False)
-        self.log('Labels', labels, on_epoch=True, on_step=False)
-        self.log('Survival_Time', survival_time, on_epoch=True, on_step=False)
-        self.log('Vital_Status', vital_status, on_epoch=True, on_step=False)
+        # self.log('Outputs', outputs, on_epoch=True, on_step=False)
+        # self.log('Labels', labels, on_epoch=True, on_step=False)
+        # self.log('Survival_Time', survival_time, on_epoch=True, on_step=False)
+        # self.log('Vital_Status', vital_status, on_epoch=True, on_step=False)
         thres = youden_j(outputs, labels).astype('float')
         for i in torch.unique(project_id):
             mask = project_id == i
@@ -94,7 +94,7 @@ class LitFullModel(pl.LightningModule):
             try:         
                 cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             except ZeroDivisionError: #sometimes vital status is all 0 or 1
-                self.log(f'C-Index_Zero_div', on_epoch=True, on_step=False)
+                #self.log(f'C-Index_Zero_div', on_epoch=True, on_step=False)
                 cindex = 0  
             self.log(f'Youden_{i}', thres, on_epoch=True, on_step=False)
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
