@@ -182,6 +182,7 @@ class ExternalDataModule(pl.LightningDataModule):
         # TODO: CHECK HERE - try opposite truth evaluation
         self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
         self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
+        self.logger.info('OS evaluation: {}'.format(self.clinical_data['overall_survival'].value_counts()))
 
 
         
