@@ -146,7 +146,7 @@ class ExternalDataModule(pl.LightningDataModule):
         # Get the patient IDs
         self.patient_ids = np.unique(self.clinical_data['PATIENT_ID'])
        
-        self.logger.info('Total {} patients'.format(len(self.patient_ids)))
+        self.logger.info('External DS - Total {} patients'.format(len(self.patient_ids)))
 
     def get_clinical_ids(self):
         self.clinical_features = self.clinical_data.columns[1:]
@@ -177,12 +177,12 @@ class ExternalDataModule(pl.LightningDataModule):
 
         # Transform the disease specific survival and overall survival to binary
         months_threshold = 60 # 5 years 
-        # self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
-        # self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
+        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
+        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
         # TODO: CHECK HERE - try opposite truth evaluation
-        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
-        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
-        self.logger.info('OS evaluation: {}'.format(self.clinical_data['overall_survival'].value_counts()))
+        # self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
+        # self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
+        # self.logger.info('OS evaluation: {}'.format(self.clinical_data['overall_survival'].value_counts()))
 
 
         

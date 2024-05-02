@@ -39,7 +39,7 @@ def main():
     logger.info(f'Using Random Seed {SEED} for this experiment')
     get_logger('lightning.pytorch.accelerators.cuda', log_level='WARNING')      # Disable cuda logging.
     filterwarnings('ignore', r'.*Skipping val loop.*')                          # Disable val loop warning.
-    filterwarnings('ignore', r".*Your `test_dataloader`'s sampler has `shuffle=True`.*")    # Disable val shuffle warning.
+    filterwarnings('ignore', r".*Your `test_dataloader`'s sampler has shuffling enabled`*")    # Disable val shuffle warning.
 
     # Create dataset manager for training data.
     data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
