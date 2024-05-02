@@ -78,7 +78,6 @@ class LitFullModel(pl.LightningModule):
         outputs = torch.functional.F.sigmoid(outputs)                           # AUC and PRC will not be affected.
         labels = torch.cat([result['label'] for result in self.step_results])
 
-
         survival_time = torch.cat([result['survival_time'] for result in self.step_results])
         vital_status = torch.cat([result['vital_status'] for result in self.step_results])
         project_id = torch.cat([result['project_id'] for result in self.step_results])
