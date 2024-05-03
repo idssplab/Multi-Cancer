@@ -40,8 +40,14 @@ def youden_j(output, target):
     from sklearn.metrics import roc_curve
     from numpy import argmax
     with torch.no_grad():
-        y_score = output.numpy()
-        y_true = target.numpy()
+        if type(output) == torch.Tensor:
+            y_score = output.numpy()
+        else:
+            y_score = output
+        if type(target) == torch.Tensor:
+            y_true = target.numpy()
+        else:
+            y_true = target
 
         #try:
         fpr, tpr, thresholds = roc_curve(y_true, y_score)
