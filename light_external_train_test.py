@@ -49,7 +49,7 @@ def main():
     
     external_testing_data.setup(only_test=False)
 
-    external_testing_dataloader = external_testing_data.test_dataloader()
+    
 
     train = external_testing_data.train_dataloader()
     test = external_testing_data.test_dataloader()

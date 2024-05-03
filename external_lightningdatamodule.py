@@ -177,11 +177,11 @@ class ExternalDataModule(pl.LightningDataModule):
 
         # Transform the disease specific survival and overall survival to binary
         months_threshold = 60 # 5 years 
-        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
-        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
+        #self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
+        #self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
         # TODO: CHECK HERE - try opposite truth evaluation
-        # self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
-        # self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
+        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
+        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
         # self.logger.info('OS evaluation: {}'.format(self.clinical_data['overall_survival'].value_counts()))
 
 
@@ -334,7 +334,7 @@ class ExternalDataModule(pl.LightningDataModule):
         return self.DataLoader(self.val_data, shuffle=False)
 
     def test_dataloader(self):
-        return self.DataLoader(self.test_data, shuffle=False, )
+        return self.DataLoader(self.test_data, shuffle=False )
 
 
     def teardown(self, stage=None):
