@@ -51,18 +51,23 @@ def main():
             
     # Use "train" as the dataloader I will use for the nested cross validation
     # iterate throught the dataloader to get the data
-    
-    for batch in train:
-        print(batch)
 
+    train_set = []
+    for batch in train:
+
+        train_set.append(batch)
+
+    print(train_set)
+
+   
 
 
 
     n_splits_outer = 5
     n_splits_inner = 5
-    outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
-    inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
-    #outer_cv = manager.get_kfold_samplers(data, n_splits_outer)
+    #outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
+    #inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
+    outer_cv = manager.get_kfold_samplers(data, n_splits_outer)
 
     outer_results = []
 
@@ -71,7 +76,7 @@ def main():
 
         # Inner loop for model selection and hyperparameter tuning
         
-        #inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
+        inner_cv = manager.get_kfold_samplers(data, n_splits_outer)
         inner_results = []
 
         for inner_train_idx, inner_val_idx in inner_cv.split(train_data):
