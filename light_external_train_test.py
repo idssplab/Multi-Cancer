@@ -39,9 +39,6 @@ def main():
     filterwarnings('ignore', r'.*Skipping val loop.*')                          # Disable val loop warning.
     filterwarnings('ignore', r".*Your `test_dataloader`'s sampler has shuffling enabled*")    # Disable val shuffle warning.
 
-    # Create dataset manager.
-    #here use torch lightning DS
-    #data = {'TCGA_BLC': TCGA_Program_Dataset(**config['datasets'])}
     
     #add the external data
     #use same file as for the MTL trained on TCGA, but tested on SCLC
