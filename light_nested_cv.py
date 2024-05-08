@@ -39,19 +39,38 @@ def main():
     else:
         manager = TCGA_Datasets_Manager(datasets=data, config=config_add_subdict_key(config))
 
+    # get 
+    for key, values in manager['TCGA_BLC']['dataloaders'].items():
+        if isinstance(key, int) and config['cross_validation']:
+            valid = values['valid']      
+
+        elif key == 'train':
+            train = values
+        elif key == 'test':
+            test = values
+            
+    # Use "train" as the dataloader I will use for the nested cross validation
+    # iterate throught the dataloader to get the data
+    
+    for batch in train:
+        print(batch)
+
+
+
 
     n_splits_outer = 5
     n_splits_inner = 5
-    #outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
-    outer_cv = manager.get_kfold_samplers(data, n_splits_outer)
+    outer_cv = KFold(n_splits=n_splits_outer, shuffle=True, random_state=SEED)
+    inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
+    #outer_cv = manager.get_kfold_samplers(data, n_splits_outer)
 
     outer_results = []
 
-    for train_idx, test_idx in outer_cv.split(data['TCGA_BLC']):
-        train_data, test_data = data['TCGA_BLC'][train_idx], data['TCGA_BLC'][test_idx]
+    for train_idx, test_idx in outer_cv.split(train):
+        train_data, test_data = train[train_idx], train[test_idx]
 
         # Inner loop for model selection and hyperparameter tuning
-        inner_cv = manager.get_kfold_samplers(data, n_splits_inner)
+        
         #inner_cv = KFold(n_splits=n_splits_inner, shuffle=True, random_state=SEED)
         inner_results = []
 
