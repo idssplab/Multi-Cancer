@@ -98,8 +98,6 @@ def main():
     bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
     for key, value in bootstrap_results.describe().loc[['mean', 'std']].to_dict().items():
         logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')
-
-
 def create_models_and_optimizers(config: dict):
     models: dict[str, torch.nn.Module] = {}
     optimizers: dict[str, torch.optim.Optimizer] = {}

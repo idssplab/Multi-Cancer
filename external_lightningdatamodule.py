@@ -309,7 +309,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def DataLoader(self, data, shuffle=False, drop_last=False):
         
 
-        data = data     
+          
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
         # Create a DataLoader from the TensorDataset
         sampler = RandomSampler( data_source=dataset, replacement=True, num_samples=len(dataset))   
@@ -322,9 +322,27 @@ class ExternalDataModule(pl.LightningDataModule):
             drop_last=drop_last
 
         )
-
-
         return dataloader
+    
+
+    
+    def get_dataset(self):
+        dataset = CustomDataset(data=self.test_data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
+        return dataset
+    
+    def bootstrap_test_dataloader(self, dataset):
+        # Create a DataLoader from the CustomDataset
+        sampler = RandomSampler( data_source=dataset, replacement=True, num_samples=len(dataset))   
+        dataloader = DataLoader(dataset, batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            collate_fn=default_collate,
+            pin_memory=True,
+            sampler=sampler,
+            drop_last=False
+        )
+        return dataloader
+         
 
 
     def train_dataloader(self):
