@@ -443,9 +443,18 @@ class TCGA_Program_Dataset(BaseDataset):
         '''
         Return the weights for each data.
         '''
+        # weights = np.zeros_like(self._project_ids, dtype='float64')
+        # for i in range(self._project_ids.min(), self._project_ids.max() + 1):
+        #     weights[self._project_ids == i] = math.sqrt(1.0 / (self._project_ids == i).sum())
+
         weights = np.zeros_like(self._project_ids, dtype='float64')
-        for i in range(self._project_ids.min(), self._project_ids.max() + 1):
-            weights[self._project_ids == i] = math.sqrt(1.0 / (self._project_ids == i).sum())
+        
+        for i in range(self.targets.min().astype(int), self.targets.max().astype(int) + 1):
+            #weights[self.targets != i] = math.sqrt(1.0 / (self.targets == i).sum())
+            weights[self.targets != i] = math.sqrt((self.targets == i).sum())
+
+
+
         return weights
 
     @property
