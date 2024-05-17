@@ -172,7 +172,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
         #remove nan values from vital status
-        self.clinical_data['vital_status'] = self.clinical_data['vital_status'] 
+        #self.clinical_data['vital_status'] = self.clinical_data['vital_status'] 
         self.clinical_data['survival_time'] = self.clinical_data['overall_survival']
 
         # Transform the disease specific survival and overall survival to binary
@@ -241,7 +241,9 @@ class ExternalDataModule(pl.LightningDataModule):
        
         
     def concat_data(self):
-        # Concatenate the genomic and clinical data , having the genes and clinical features as columns     
+        # Concatenate the genomic and clinical data , having the genes and clinical features as columns   
+        #save clinical data to a csv file to check the nan values
+        #self.clinical_data.to_csv('clin_data.csv', index=True)  
                
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
         

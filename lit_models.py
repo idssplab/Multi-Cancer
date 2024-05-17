@@ -82,6 +82,10 @@ class LitFullModel(pl.LightningModule):
         vital_status = torch.cat([result['vital_status'] for result in self.step_results])
         project_id = torch.cat([result['project_id'] for result in self.step_results])
 
+        # For patients that survived more than 60 months, in lots of cases, we do not know the exact survival time.
+        # To make the c-index calculation fair, we make the survival time of these patients censored i.e. be 61.
+        survival_time[survival_time > 60] = 61
+
         # self.log('Outputs', outputs, on_epoch=True, on_step=False)
         # self.log('Labels', labels, on_epoch=True, on_step=False)
         # self.log('Survival_Time', survival_time, on_epoch=True, on_step=False)
@@ -96,7 +100,7 @@ class LitFullModel(pl.LightningModule):
             except ZeroDivisionError: #sometimes vital status is all 0 or 1
                 #self.log(f'C-Index_Zero_div', on_epoch=True, on_step=False)
                 cindex = 0  
-            self.log(f'Youden_{i}', thres, on_epoch=True, on_step=False)
+            #self.log(f'Youden_{i}', thres, on_epoch=True, on_step=False)
             self.log(f'AUC_{i}', roc, on_epoch=True, on_step=False)
             self.log(f'PRC_{i}', prc, on_epoch=True, on_step=False)
             self.log(f'C-Index_{i}', cindex, on_epoch=True, on_step=False)

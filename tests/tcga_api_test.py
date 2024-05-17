@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     project_case_test_filters = {
         'and': [
-            {'=': {'project.project_id': 'TCGA-BRCA'}},
+            {'=': {'project.project_id': 'TCGA-PRAD'}},
             {'=': {'files.access': 'open'}},
             {'=': {'files.data_type': 'Gene Expression Quantification'}},
             {'=': {'files.experimental_strategy': 'RNA-Seq'}},

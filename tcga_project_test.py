@@ -10,7 +10,7 @@ set_random_seed(SEED)
 if __name__ == '__main__':
     setup_logging(Path('./Logs/Tests/'))
 
-    project_id = 'TCGA-BRCA'
+    project_id = 'TCGA-PRAD'
     download_root_directory = './Data'
     cache_root_directory = './Cache'
     n_threads = 16
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     )
 
     project_filters = {
-        '=': {'program.name': 'TCGA'}
+        '=': {'program.name': 'TCGA-PRAD'}
     }
     project_ids = [project_metadata['id'] for project_metadata in get_filters_result_from_project(filters=project_filters, sort='summary.case_count:desc', size=100)]
 

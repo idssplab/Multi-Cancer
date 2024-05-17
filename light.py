@@ -58,7 +58,7 @@ def main():
                 enable_checkpointing=False,
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            trainer.test(lit_model, dataloaders=values['valid'], verbose=False) #verbose true prints the validation results for each fold
+            ##trainer.test(lit_model, dataloaders=values['valid'], verbose=False) #verbose true prints the validation results for each fold
             # print validation results
             
             valid_results.append(trainer.test(lit_model, dataloaders=values['valid'], verbose=False)[0])
@@ -72,6 +72,7 @@ def main():
 
 
     # Print validation results.
+    logger.info('Validation Results:')
     valid_results = pd.DataFrame.from_records(valid_results)
     for key, value in valid_results.describe().loc[['mean', 'std']].to_dict().items():
         logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')
@@ -89,6 +90,7 @@ def main():
     trainer.fit(lit_model, train_dataloaders=train)
 
     # Test the final model.
+    logger.info('Test Results:')
     bootstrap_results = []
     for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):
         bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0])

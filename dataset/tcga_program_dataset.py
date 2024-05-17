@@ -443,28 +443,31 @@ class TCGA_Program_Dataset(BaseDataset):
         '''
         Return the weights for each data.
         '''
-        # weights = np.zeros_like(self._project_ids, dtype='float64')
-        # for i in range(self._project_ids.min(), self._project_ids.max() + 1):
-        #      weights[self._project_ids == i] = math.sqrt(1.0 / (self._project_ids == i).sum())
+        weights = np.zeros_like(self._project_ids, dtype='float64')
+        for i in range(self._project_ids.min(), self._project_ids.max() + 1):
+             weights[self._project_ids == i] = math.sqrt(1.0 / (self._project_ids == i).sum())
 
         # weights = np.zeros_like(self._project_ids, dtype='float64')
         
         # for i in range(self.targets.min().astype(int), self.targets.max().astype(int) + 1):
         #     weights[self.targets != i] = math.sqrt(1.0 / (self.targets == i).sum())
-        label_1_factor=2.0
-        weights = np.ones_like(self._project_ids, dtype='float64')
+        # label_1_factor=2.0
+        # weights = np.ones_like(self._project_ids, dtype='float64')
     
-        # Compute weights for project IDs
-        for i in range(self._project_ids.min(), self._project_ids.max() + 1):
-            project_weight = math.sqrt(1.0 / (self._project_ids == i).sum())
-            weights[self._project_ids == i] *= project_weight
+        # # Compute weights for project IDs
+        # for i in range(self._project_ids.min(), self._project_ids.max() + 1):
+        #     project_weight = math.sqrt(1.0 / (self._project_ids == i).sum())
+        #     weights[self._project_ids == i] *= project_weight
         
-        # Compute weights for targets
-        for i in range(self.targets.min().astype(int), self.targets.max().astype(int) + 1):
-            target_weight = math.sqrt(1.0 / (self.targets == i).sum())
-            if i == 1:
-                target_weight *= label_1_factor  # Increase weight for label 1
-            weights[self.targets == i] *= target_weight    
+        # # Compute weights for targets
+        # for i in range(self.targets.min().astype(int), self.targets.max().astype(int) + 1):
+        #     target_weight = math.sqrt(1.0 / (self.targets == i).sum())
+        #     if i == 1:
+        #         target_weight *= label_1_factor  # Increase weight for label 1
+        #     weights[self.targets == i] *= target_weight    
+
+        # weights[self.targets == 1] = 0.5
+        # weights[self.targets == 0] = 0.5
 
 
 
