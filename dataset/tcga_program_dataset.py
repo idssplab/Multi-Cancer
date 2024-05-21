@@ -149,6 +149,9 @@ class TCGA_Program_Dataset(BaseDataset):
         for project_id, tcga_project in self.tcga_projects.items():
             df_genomic: pd.DataFrame = tcga_project.genomic.T
             if self.chosen_project_gene_ids[project_id] not in ['ALL']:
+                print("chosen_project_gene_ids", type(self.chosen_project_gene_ids[project_id]))
+                print('project_id', project_id)
+                print('df_genomic', df_genomic)
                 df_genomic = df_genomic[self.chosen_project_gene_ids[project_id]]
             else:
                 raise ValueError(f'No gene ids specified for {project_id}')

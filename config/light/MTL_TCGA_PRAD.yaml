@@ -32,7 +32,8 @@ datasets:
   chosen_features:
     gene_ids:
       TCGA-BRCA: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
-      TCGA-PRAD: ['TP53', 'SPOP', 'TTN', 'MUC16', 'KMT2D', 'FOXA1', 'KMT2C', 'SYNE1', 'SPTA1', 'LTP1B', 'ATM', 'CSMD3', 'FAT3', 'RYR2', 'PTEN', 'OBSCN', 'HMCN1', 'CACNA1E', 'USH2A', 'RYR1']
+      #TCGA-PRAD: ['TP53', 'SPOP', 'TTN', 'MUC16', 'KMT2D', 'FOXA1', 'KMT2C', 'SYNE1', 'SPTA1', 'LTP1B', 'ATM', 'CSMD3', 'FAT3', 'RYR2', 'PTEN', 'OBSCN', 'HMCN1', 'CACNA1E', 'USH2A', 'RYR1']
+      TCGA-PRAD: ['TSPAN6', 'TNMD', 'DPM1', 'SCYL3', 'C1orf112', 'FGR', 'CFH', 'FUCA2', 'GCLC', 'NFYA', 'STPG1', 'NIPAL3', 'LAS1L', 'ENPP4', 'SEMA3F', 'CFTR', 'ANKIB1', 'CYP51A1', 'KRIT1', 'RAD52']
     clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
     clinical_categorical_ids:
       - gender

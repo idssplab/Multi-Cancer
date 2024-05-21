@@ -68,7 +68,7 @@ class TCGA_Project_Dataset(BaseDataset):
             'n_threads': n_threads
         }
         
-        #self.tcga_project = TCGA_Project(**self.tcga_project_init_kwargs)
+        self.tcga_project = TCGA_Project(**self.tcga_project_init_kwargs)
 
         # Specify the target type
         self.target_type = target_type

@@ -177,9 +177,6 @@ class ExternalDataModule(pl.LightningDataModule):
 
         # Transform the disease specific survival and overall survival to binary
         months_threshold = 60 # 5 years 
-        #self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] >= months_threshold).astype(int)
-        #self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] >= months_threshold).astype(int)
-        # TODO: CHECK HERE - try opposite truth evaluation
         self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
         self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
         # self.logger.info('OS evaluation: {}'.format(self.clinical_data['overall_survival'].value_counts()))
@@ -198,8 +195,9 @@ class ExternalDataModule(pl.LightningDataModule):
         self.preprocess_clinical_numeric_data()        
         # CATEGORICAL COLS
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)  
-        # check that "gender_male" is still present                  
-
+        # check that "gender_male" is still present 
+        self.logger.info('Clinical Data cols')  
+        self.logger.info(self.clinical_data.columns)
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
 
         # rename columns to be the same as in TCGA dataset
@@ -218,9 +216,19 @@ class ExternalDataModule(pl.LightningDataModule):
                     self.clinical_data = self.clinical_data[col_order]
 
         #add the binary columns: 'race_american indian or alaska native', 'race_black or african american', 'ethnicity_hispanic or latino'
+        #'race_not reported', 'race_white', 'ethnicity_not reported'
 
+        if "race_white" not in self.clinical_data.columns:
+             self.clinical_data['race_white'] = 0
+        if "race_black or african american" not in self.clinical_data.columns:
+            self.clinical_data['race_black or african american'] =0
+        if "race_not_reported" not in self.clinical_data.columns:
+             self.clinical_data["race_not reported"] =0
+        if "ethnicity_not reported" not in self.clinical_data.columns:
+             self.clinical_data["ethnicity_not reported"] =0
+             
         self.clinical_data['race_american indian or alaska native'] =0
-        self.clinical_data['race_black or african american'] =0
+       
         self.clinical_data['ethnicity_hispanic or latino'] = 0
         self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
