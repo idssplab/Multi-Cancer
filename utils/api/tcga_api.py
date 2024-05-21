@@ -35,6 +35,9 @@ def _get_metadata_from_tcga_api(endpoint, **kwargs):
     response = session.get(endpoint, params=params)
     response.raise_for_status()
 
+    # debug
+    print(response.url)
+
     return response.json()
 
 def get_metadata_from_project(project_id, **kwargs):
@@ -45,6 +48,9 @@ def get_metadata_from_project(project_id, **kwargs):
     :param **kwargs: The parameters that you want to add in the request. Please see the GDC API documentations for the valid parameters.
     '''
     tcga_project_id_endpoint = '/'.join([TCGA_PROJECT_ENDPOINT, project_id])
+
+    #debug
+    #print("get_metadata_from_project",tcga_project_id_endpoint)
 
     return _get_metadata_from_tcga_api(endpoint=tcga_project_id_endpoint, **kwargs)['data']
 
@@ -196,6 +202,8 @@ def _get_download_from_tcga_api(file_ids, **kwargs):
         headers=headers,
         params=params
     )
+    # debug
+    print(response.url)
     response.raise_for_status()
 
     response_head_cd = response.headers['Content-Disposition']

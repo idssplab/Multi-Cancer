@@ -68,7 +68,7 @@ if __name__ == '__main__':
         expand=['summary', 'summary.experimental_strategies', 'summary.data_categories']
     ))
     print(get_metadata_from_case(case_id='1f601832-eee3-48fb-acf5-80c4a454f26e', expand='diagnoses'))
-    print(get_metadata_from_file(file_id='874e71e0-83dd-4d3e-8014-10141b49f12c'))
+    #print(get_metadata_from_file(file_id='874e71e0-83dd-4d3e-8014-10141b49f12c'))
 
     print(get_filters_result_from_project(filters=project_test_filters, sort='summary.case_count:asc'))
     print(get_filters_result_from_case(filters=simple_test_filters, sort='demographic.gender:asc'))
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     print(get_filters_result_from_case(filters=cases_test_filters))
     print(get_filters_result_from_file(filters=file_test_filters, fields=['cases.case_id', 'file_name', 'file_id']))
 
-    # download_file(file_id='5b2974ad-f932-499b-90a3-93577a9f0573', extract_directory='Data')
+    download_file(file_id='5b2974ad-f932-499b-90a3-93577a9f0573', extract_directory='Data')
     # download_file(file_id='5b2974ad-f932-499b-90a3-93577a9f0573', extract_directory='Data', method='POST')
     # download_file(file_id='7efc039a-fde3-4bc1-9433-2fc6b5e3ffa5', extract_directory='Data', related_files=True)
     # download_file(file_id='7efc039a-fde3-4bc1-9433-2fc6b5e3ffa5', extract_directory='Data', method='POST',

@@ -211,8 +211,9 @@ class TCGA_Project(object):
         ]
 
         for case_metadata in get_filters_result_from_case(**kwargs):
+            
             case_metadatas[case_metadata['id']] = case_metadata
-
+        print("Case metadata",case_metadatas)
         return case_metadatas
 
     def _get_case_file_metadatas(self, project_id, case_ids):
@@ -276,6 +277,10 @@ class TCGA_Project(object):
         # Get the file metadatas that we wanted
         cases_file_metadatas = self._get_case_file_metadatas(project_id=project_id, case_ids=case_ids)
 
+        #debug 
+        print("Cases file metadatas",cases_file_metadatas)
+
+
         total_file_names = []
         for case_id in cases_file_metadatas:
             total_file_names.extend([file_name for file_name in cases_file_metadatas[case_id]])
@@ -293,15 +298,11 @@ class TCGA_Project(object):
             ])
 
         # Download files from tcga api
-        if len(download_file_ids) == 1:
-            self.logger.info('Downloading 1 file for {}...'.format(self.project_id))
-            download_file(file_id=download_file_ids[0], extract_directory=str(extract_directory))
-        elif len(download_file_ids) > 1:
-            self.logger.info('Downloading {} files for {}...'.format(len(download_file_ids), self.project_id))
+        if len(download_file_ids) > 0:
+            self.logger.info(f'Downloading {len(download_file_ids)} files for project {self.project_id}...')
             download_files(file_ids=download_file_ids, extract_directory=str(extract_directory))
         else:
-            self.logger.info('All files are downloaded for {}'.format(self.project_id))
-
+            self.logger.info(f'No files to download for project {self.project_id}')
         # Seperate each files into the directory, then record the path down
         cases_file_paths = {}
         for case_id in cases_file_metadatas:
@@ -313,10 +314,15 @@ class TCGA_Project(object):
                     new_file_path = extract_directory.joinpath(case_id, file_name)
                     new_file_path.parent.mkdir(exist_ok=True)
                     file_path = file_path.rename(new_file_path)
+                else:
+                    self.logger.warning(f'File not found: {file_path}')
 
                 file_paths.append(extract_directory.joinpath(case_id, file_name))
 
             cases_file_paths[case_id] = file_paths
+        self.logger.info(f'Files successfully downloaded and organized for project {self.project_id}')
+        
+
 
         return cases_file_paths
 
