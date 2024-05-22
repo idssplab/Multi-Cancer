@@ -85,9 +85,7 @@ class Clinical_Feature_Extractor(BaseModel):
     def forward(self, clinical):
         batch_size = clinical.size(0)
 
-        print("clinical shape",clinical.shape)
         
-
         clinical = clinical.type(torch.float32)
 
 
