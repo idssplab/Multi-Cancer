@@ -36,7 +36,7 @@ def _get_metadata_from_tcga_api(endpoint, **kwargs):
     response.raise_for_status()
 
     # debug
-    print(response.url)
+    #print(response.url)
 
     return response.json()
 
@@ -203,7 +203,7 @@ def _get_download_from_tcga_api(file_ids, **kwargs):
         params=params
     )
     # debug
-    print(response.url)
+    print('response url', response.url)
     response.raise_for_status()
 
     response_head_cd = response.headers['Content-Disposition']
@@ -264,6 +264,7 @@ def download_file(file_id, extract_directory, method='GET', **kwargs):
     else:
         raise KeyError('Wrong methods. Only accept GET and POST')
 
+    # not working
     content, file_name = download_from_tcga_api([file_id], **kwargs)
 
     with open('/'.join([extract_directory, file_name]), 'wb') as output_file:

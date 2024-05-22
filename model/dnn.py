@@ -85,6 +85,9 @@ class Clinical_Feature_Extractor(BaseModel):
     def forward(self, clinical):
         batch_size = clinical.size(0)
 
+        print("clinical shape",clinical.shape)
+        
+
         clinical = clinical.type(torch.float32)
 
 
@@ -93,8 +96,9 @@ class Clinical_Feature_Extractor(BaseModel):
             [self.clinical_numerical_dim, self.clinical_categorical_dim],
             dim=1
         )
+        
 
-        if self.clinical_categorical_dim:
+        if self.clinical_categorical_dim: #problem line
             clinical_categorical_embeddings = self.clinical_categorical_embedding(
                 clinical_categorical.nonzero(as_tuple=True)[1].view(
                     clinical_categorical.size(0), -1

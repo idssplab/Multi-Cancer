@@ -72,9 +72,9 @@ if __name__ == '__main__':
 
     print(get_filters_result_from_project(filters=project_test_filters, sort='summary.case_count:asc'))
     print(get_filters_result_from_case(filters=simple_test_filters, sort='demographic.gender:asc'))
-    print(get_filters_result_from_case(filters=complex_test_filters, fields=['case_id']))
-    print(get_filters_result_from_case(filters=project_case_test_filters))
-    print(get_filters_result_from_case(filters=cases_test_filters))
+    # print(get_filters_result_from_case(filters=complex_test_filters, fields=['case_id']))
+    # print(get_filters_result_from_case(filters=project_case_test_filters))
+    # print(get_filters_result_from_case(filters=cases_test_filters))
     print(get_filters_result_from_file(filters=file_test_filters, fields=['cases.case_id', 'file_name', 'file_id']))
 
     download_file(file_id='5b2974ad-f932-499b-90a3-93577a9f0573', extract_directory='Data')

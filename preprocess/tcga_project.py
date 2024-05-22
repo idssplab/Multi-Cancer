@@ -278,7 +278,7 @@ class TCGA_Project(object):
         cases_file_metadatas = self._get_case_file_metadatas(project_id=project_id, case_ids=case_ids)
 
         #debug 
-        print("Cases file metadatas",cases_file_metadatas)
+        #print("Cases file metadatas",cases_file_metadatas)
 
 
         total_file_names = []

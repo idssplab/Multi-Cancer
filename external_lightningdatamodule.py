@@ -118,17 +118,13 @@ class ExternalDataModule(pl.LightningDataModule):
         self.chosen_clinical_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
     def prepare_data(self):
-        # Download the necessary data files
-        # load sclc_ucologne_2015 data
+
         self.genomic_data = pd.read_csv(self.data_dir + '/data_mrna_seq_tpm_small.csv', header=0, sep=',')
        
         self.filter_genes()
 
         self.clinical_data = pd.read_csv(self.data_dir + '/data_clinical_patient.csv', header=0, sep=',')
-        #PATIENT_ID	gender	ethnicity	race	year_of_diagnosis	year_of_birth	
-        # overall_survival	vital_status	disease_specific_survival	primary_site
-        #(genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
-        #print(self.clinical_data.columns)
+
         self.overall_survivals = self.clinical_data.overall_survival
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival']
         self.primary_sites = self.clinical_data['primary_site']
@@ -168,21 +164,10 @@ class ExternalDataModule(pl.LightningDataModule):
 
         # Normalize the numerical values
         self.clinical_data[self.chosen_clinical_numerical_ids] -= clinical_mean
-        #the std is 0 for year_of_diagnosis, all samples were taken in 2015
+        #the std is 0 for year_of_diagnosis
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
-        #remove nan values from vital status
-        #self.clinical_data['vital_status'] = self.clinical_data['vital_status'] 
-        self.clinical_data['survival_time'] = self.clinical_data['overall_survival']
-
-        # Transform the disease specific survival and overall survival to binary
-        months_threshold = 60 # 5 years 
-        self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < months_threshold).astype(int)
-        self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < months_threshold).astype(int)
-        # self.logger.info('OS evaluation: {}'.format(self.clinical_data['overall_survival'].value_counts()))
-
-
-        
+                
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
         self.vital_status = self.clinical_data['vital_status']
@@ -212,8 +197,7 @@ class ExternalDataModule(pl.LightningDataModule):
                     # 0 if gender_female is 1, 1 if gender_female is 0
                     self.clinical_data['gender_male'] = 1 - self.clinical_data['gender_female']
                     # gender_male should go right after "gender_female"
-                    col_order = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
-                    self.clinical_data = self.clinical_data[col_order]
+                    
 
         #add the binary columns: 'race_american indian or alaska native', 'race_black or african american', 'ethnicity_hispanic or latino'
         #'race_not reported', 'race_white', 'ethnicity_not reported'
@@ -222,15 +206,17 @@ class ExternalDataModule(pl.LightningDataModule):
              self.clinical_data['race_white'] = 0
         if "race_black or african american" not in self.clinical_data.columns:
             self.clinical_data['race_black or african american'] =0
-        if "race_not_reported" not in self.clinical_data.columns:
+        if "race_not reported" not in self.clinical_data.columns:
              self.clinical_data["race_not reported"] =0
         if "ethnicity_not reported" not in self.clinical_data.columns:
              self.clinical_data["ethnicity_not reported"] =0
-             
-        self.clinical_data['race_american indian or alaska native'] =0
+        if "race_american indian or alaska native" not in self.clinical_data.columns:
+            self.clinical_data['race_american indian or alaska native'] =0
        
-        self.clinical_data['ethnicity_hispanic or latino'] = 0
-        self.clinical_data['race_native hawaiian or other pacific islander'] = 0
+        if "ethnicity_hispanic or latino" not in self.clinical_data.columns:
+            self.clinical_data['ethnicity_hispanic or latino'] = 0
+        if "race_native hawaiian or other pacific islander" not in self.clinical_data.columns:
+            self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
         #assigned directly so that the order is preserved
         self.all_clinical_feature_ids = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
@@ -251,7 +237,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def concat_data(self):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns   
         #save clinical data to a csv file to check the nan values
-        #self.clinical_data.to_csv('clin_data.csv', index=True)  
+        self.clinical_data.to_csv('clin_data.csv', index=True)  
                
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
         
@@ -301,7 +287,7 @@ class ExternalDataModule(pl.LightningDataModule):
                 train_data, test_data = [], []
                 for project_id in self.project_id:
                     project_data = self.data
-                    project_data = project_data.sample(frac=1)
+                    project_data = project_data.sample(frac=1) #shuffle
                     num_samples = len(project_data)
                     num_train_samples = int(num_samples * 0.8)
                     train_data.append(project_data.iloc[:num_train_samples])
@@ -318,9 +304,8 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def DataLoader(self, data, shuffle=False, drop_last=False):
         
-
-          
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
+        print("clinical features", self.all_clinical_feature_ids)   
         # Create a DataLoader from the TensorDataset
         sampler = RandomSampler( data_source=dataset, replacement=True, num_samples=len(dataset))   
         dataloader = DataLoader(dataset, batch_size=self.batch_size,

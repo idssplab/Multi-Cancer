@@ -1,6 +1,6 @@
 n_gpu: 1
 pin_memory: true
-max_epochs: 50
+max_epochs: 2
 cross_validation: true
 bootstrap_repeats: 1000
 
@@ -63,6 +63,6 @@ datasets_manager:
   TCGA_BLC:
     train: true
     batch_size: 128
-    num_folds: 4
+    num_folds: 2
     test_split: 0.2
     num_workers: 4
