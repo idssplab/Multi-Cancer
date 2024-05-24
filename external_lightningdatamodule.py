@@ -199,24 +199,18 @@ class ExternalDataModule(pl.LightningDataModule):
                     # gender_male should go right after "gender_female"
                     
 
-        #add the binary columns: 'race_american indian or alaska native', 'race_black or african american', 'ethnicity_hispanic or latino'
-        #'race_not reported', 'race_white', 'ethnicity_not reported'
+        # List of all required columns
+        required_columns = [
+            'age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male',
+            'race_american indian or alaska native', 'race_asian', 'race_black or african american',
+            'race_not reported', 'race_white', 'ethnicity_hispanic or latino',
+            'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
+        ]
 
-        if "race_white" not in self.clinical_data.columns:
-             self.clinical_data['race_white'] = 0
-        if "race_black or african american" not in self.clinical_data.columns:
-            self.clinical_data['race_black or african american'] =0
-        if "race_not reported" not in self.clinical_data.columns:
-             self.clinical_data["race_not reported"] =0
-        if "ethnicity_not reported" not in self.clinical_data.columns:
-             self.clinical_data["ethnicity_not reported"] =0
-        if "race_american indian or alaska native" not in self.clinical_data.columns:
-            self.clinical_data['race_american indian or alaska native'] =0
-       
-        if "ethnicity_hispanic or latino" not in self.clinical_data.columns:
-            self.clinical_data['ethnicity_hispanic or latino'] = 0
-        if "race_native hawaiian or other pacific islander" not in self.clinical_data.columns:
-            self.clinical_data['race_native hawaiian or other pacific islander'] = 0
+        # Adding missing columns with default value 0
+        for column in required_columns:
+            if column not in self.clinical_data.columns:
+                self.clinical_data[column] = 0
 
         #assigned directly so that the order is preserved
         self.all_clinical_feature_ids = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
