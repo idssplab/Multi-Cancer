@@ -44,7 +44,8 @@ class CustomDataset(torch.utils.data.Dataset):
 
 
 class ExternalDataModule(pl.LightningDataModule):
-    def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0, project_id_task_descriptor=0):
+    def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0, project_id_task_descriptor=0,
+                 os_threshold =60):
         #numworkers comes from cache directory
         super().__init__()
         self.project_id_task_descriptor = project_id_task_descriptor
@@ -64,7 +65,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.all_clinical_feature_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
  
-        self.os_threshold = 60
+        self.os_threshold = os_threshold
         self.data = None
         self.genomic_type = 'tpm'
         self.genomic_data = None
@@ -189,7 +190,7 @@ class ExternalDataModule(pl.LightningDataModule):
         if self.os_threshold != 60:
             
             # save a csv with the old and new values, and the survival time and vital status
-            df = pd.DataFrame({'old_overall_survival': self.clinical_data['overall_survival'], 'new_overall_survival': (self.clinical_data['survival_time'] < self.os_threshold).astype(int), 'survival_time': self.clinical_data[cancer_id]['survival_time'], 'vital_status': self.clinical_data[cancer_id]['vital_status']})
+            df = pd.DataFrame({'old_overall_survival': self.clinical_data['overall_survival'], 'new_overall_survival': (self.clinical_data['survival_time'] < self.os_threshold).astype(int), 'survival_time': self.clinical_data['survival_time'], 'vital_status': self.clinical_data['vital_status']})
             
             self.clinical_data['overall_survival'] = (self.clinical_data['survival_time'] < self.os_threshold).astype(int)
             
