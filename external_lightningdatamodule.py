@@ -64,7 +64,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.all_clinical_feature_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
  
-
+        self.os_threshold = 60
         self.data = None
         self.genomic_type = 'tpm'
         self.genomic_data = None
@@ -167,10 +167,40 @@ class ExternalDataModule(pl.LightningDataModule):
         #the std is 0 for year_of_diagnosis
         self.clinical_data[self.chosen_clinical_numerical_ids] /= clinical_std
 
+        
+        self.transform_survival_data()
                 
         self.overall_survivals = self.clinical_data['overall_survival'] 
         self.disease_specific_survivals = self.clinical_data['disease_specific_survival'] 
         self.vital_status = self.clinical_data['vital_status']
+
+
+    def remove_nan_values(self):
+        # Remove the rows with missing values in the clinical data
+        self.clinical_data = self.clinical_data.dropna(subset=['overall_survival', 'disease_specific_survival', 'vital_status'])
+        self.clinical_data = self.clinical_data.reset_index(drop=True)
+        self.logger.info('External DS - Total {} samples after removing missing values'.format(len(self.clinical_data)))
+
+    def transform_survival_data(self):
+
+        self.remove_nan_values()
+        # Transform the disease specific survival and overall survival to binary
+        
+        if self.os_threshold != 60:
+            
+            # save a csv with the old and new values, and the survival time and vital status
+            df = pd.DataFrame({'old_overall_survival': self.clinical_data['overall_survival'], 'new_overall_survival': (self.clinical_data['survival_time'] < self.os_threshold).astype(int), 'survival_time': self.clinical_data[cancer_id]['survival_time'], 'vital_status': self.clinical_data[cancer_id]['vital_status']})
+            
+            self.clinical_data['overall_survival'] = (self.clinical_data['survival_time'] < self.os_threshold).astype(int)
+            
+            df['new_overall_survival'] = self.clinical_data['overall_survival']  
+            
+            df.to_csv('check_survival_time.csv', index=False)
+        else:            
+            
+            
+            self.clinical_data['disease_specific_survival'] = (self.clinical_data['disease_specific_survival'] < self.os_threshold).astype(int)        
+            self.clinical_data['overall_survival'] = (self.clinical_data['overall_survival'] < self.os_threshold).astype(int) #target
         
 
     def normalize_clinical_data(self):
@@ -181,8 +211,7 @@ class ExternalDataModule(pl.LightningDataModule):
         # CATEGORICAL COLS
         self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)  
         # check that "gender_male" is still present 
-        self.logger.info('Clinical Data cols')  
-        self.logger.info(self.clinical_data.columns)
+        
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
 
         # rename columns to be the same as in TCGA dataset
@@ -190,27 +219,48 @@ class ExternalDataModule(pl.LightningDataModule):
         # 'race_american indian or alaska native', 'race_asian', 'race_black or african american', 
         # 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
         # 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
-        self.clinical_data.rename({'gender_Female': 'gender_female', 'gender_Male': 'gender_male', 'race_0.0':'race_not reported', 
-                                   'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 'ethnicity_1.0':'ethnicity_not hispanic or latino' }, inplace=True, axis=1)
+        #change all columns to lower case
+        self.clinical_data.columns = map(str.lower, self.clinical_data.columns)
+        print(self.clinical_data.columns)
+
+        self.clinical_data.rename({'race_0.0':'race_not reported', 
+                                   'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 
+                                   'ethnicity_1.0':'ethnicity_not hispanic or latino', 'ethnicity_2.0': 'ethnicity_hispanic or latino' }, inplace=True, axis=1)
         
+
+        if "gender_female" not in self.clinical_data.columns:
+            self.clinical_data["gender_female"] = 0
         if "gender_male" not in self.clinical_data.columns:
                     # 0 if gender_female is 1, 1 if gender_female is 0
                     self.clinical_data['gender_male'] = 1 - self.clinical_data['gender_female']
-                    # gender_male should go right after "gender_female"
-                    
+        
+        if "race_asian" not in self.clinical_data.columns:
+             self.clinical_data["race_asian"] = 0
+        if "race_white" not in self.clinical_data.columns:
+             self.clinical_data['race_white'] = 0
+        if "race_black or african american" not in self.clinical_data.columns:
+            self.clinical_data['race_black or african american'] =0
+        if "race_not reported" not in self.clinical_data.columns:
+             self.clinical_data["race_not reported"] =0
+        if "ethnicity_not reported" not in self.clinical_data.columns:
+             self.clinical_data["ethnicity_not reported"] =0
+        if "race_american indian or alaska native" not in self.clinical_data.columns:
+            self.clinical_data['race_american indian or alaska native'] =0
+       
+        if "ethnicity_hispanic or latino" not in self.clinical_data.columns:
+            self.clinical_data['ethnicity_hispanic or latino'] = 0
+        if "race_native hawaiian or other pacific islander" not in self.clinical_data.columns:
+            self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
-        # List of all required columns
-        required_columns = [
-            'age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 'gender_female', 'gender_male',
-            'race_american indian or alaska native', 'race_asian', 'race_black or african american',
-            'race_not reported', 'race_white', 'ethnicity_hispanic or latino',
-            'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
-        ]
+        # assert that at least one of the race_ columns is 1
+        assert self.clinical_data[['race_native hawaiian or other pacific islander','race_american indian or alaska native', 'race_asian', 'race_black or african american',
+        'race_not reported', 'race_white']].sum(axis=1).min() == 1
 
-        # Adding missing columns with default value 0
-        for column in required_columns:
-            if column not in self.clinical_data.columns:
-                self.clinical_data[column] = 0
+
+        # assert that at least one of the ethnicity_ columns is 1
+        assert self.clinical_data[['ethnicity_hispanic or latino', 
+        'ethnicity_not hispanic or latino', 'ethnicity_not reported']].sum(axis=1).min() == 1
+                                                 
 
         #assigned directly so that the order is preserved
         self.all_clinical_feature_ids = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
@@ -248,7 +298,7 @@ class ExternalDataModule(pl.LightningDataModule):
         ))
         
         #check if there are any missing values
-        self.logger.info('External DS - Total {} missing values'.format(self.data.isnull().sum().sum()))
+        #self.logger.info('External DS - Total {} missing values'.format(self.data.isnull().sum().sum()))
         # save the data to a csv file to check the nan values
         #self.data.to_csv('format_ext_data.csv', index=True)
 

@@ -412,6 +412,9 @@ class TCGA_Case(object):
         '''
         Return the overall survival data.
         '''
+
+        # TO-DO: try 3 years - REMEMBER TO CHANGE
+        year = 3
         return self._get_overall_survival_data(case_id=self.case_id, case_metadata=self.case_metadata, year=year)
 
     @property
