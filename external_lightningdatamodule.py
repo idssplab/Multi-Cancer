@@ -40,7 +40,21 @@ class CustomDataset(torch.utils.data.Dataset):
             return ((genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status))
 
 
+def check_for_categorical_zeros(df):
+    race_cols = ["race_not reported", "race_white", "race_asian", "race_american indian or alaska native", "race_black or african american", "race_native hawaiian or other pacific islander"]           
+    ethnicity_cols = ["ethnicity_not reported", "ethnicity_not hispanic or latino", "ethnicity_hispanic or latino"]
 
+    # if all values in a row are zero, then the sum of the row will be zero
+    if sum(df[race_cols].all(axis=1)) == 0:
+        # grab all rows where the sum of the row is zero
+        # for these rows, set the value of "race_not reported" to 1
+        df.loc[df[race_cols].sum(axis=1) == 0, "race_not reported"] = 1
+        
+    if sum(df[ethnicity_cols].all(axis=1)) == 0:
+        df.loc[df[ethnicity_cols].sum(axis=1) == 0, "ethnicity_not reported"] = 1
+        df.loc[df[ethnicity_cols].sum(axis=1) == 0, "ethnicity_not reported"] = 1
+        
+    return df
 
 
 class ExternalDataModule(pl.LightningDataModule):
@@ -228,39 +242,77 @@ class ExternalDataModule(pl.LightningDataModule):
                                    'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 
                                    'ethnicity_1.0':'ethnicity_not hispanic or latino', 'ethnicity_2.0': 'ethnicity_hispanic or latino' }, inplace=True, axis=1)
         
+        clin_col_names = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
+            'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
+            'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
+            'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
 
-        if "gender_female" not in self.clinical_data.columns:
-            self.clinical_data["gender_female"] = 0
-        if "gender_male" not in self.clinical_data.columns:
-                    # 0 if gender_female is 1, 1 if gender_female is 0
-                    self.clinical_data['gender_male'] = 1 - self.clinical_data['gender_female']
+        total_clin_col_names = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth',
+        'overall_survival', 'vital_status', 'disease_specific_survival',
+        'survival_time', 'gender_female', 'gender_male', 'race_not reported',
+        'race_white', 'race_asian', 'ethnicity_not reported',
+        'ethnicity_not hispanic or latino',
+        'race_american indian or alaska native',
+        'race_black or african american', 'ethnicity_hispanic or latino',
+        'race_native hawaiian or other pacific islander'] #this is the order of the columns in the csv file
+
+        self.clinical_features =  clin_col_names
+        #applied before concat        
+        # CATEGORICAL COLS #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'] 
+        for cancer_id in self.project_ids:     
+            self.clinical_data[cancer_id] = pd.get_dummies(self.clinical_data[cancer_id], columns=self.clinical_categorical_features, dtype=float)             
+            #change the column names to lower case
+            self.clinical_data[cancer_id].columns = map(str.lower, self.clinical_data[cancer_id].columns)          
+            self.clinical_data[cancer_id] = self.clinical_data[cancer_id].select_dtypes(exclude=['object'])   
+            
+            #if any of the columns is missing, add it with 0 values
+            for col in clin_col_names:
+                if col not in self.clinical_data[cancer_id].columns:
+                    #print('adding column {}'.format(col))
+                    self.clinical_data[cancer_id][col] = 0
+
+            self.clinical_data[cancer_id] = check_for_categorical_zeros(self.clinical_data[cancer_id])     
+            #reorder the columns           
+            self.clinical_data[cancer_id] = self.clinical_data[cancer_id][total_clin_col_names] 
         
-        if "race_asian" not in self.clinical_data.columns:
-             self.clinical_data["race_asian"] = 0
-        if "race_white" not in self.clinical_data.columns:
-             self.clinical_data['race_white'] = 0
-        if "race_black or african american" not in self.clinical_data.columns:
-            self.clinical_data['race_black or african american'] =0
-        if "race_not reported" not in self.clinical_data.columns:
-             self.clinical_data["race_not reported"] =0
-        if "ethnicity_not reported" not in self.clinical_data.columns:
-             self.clinical_data["ethnicity_not reported"] =0
-        if "race_american indian or alaska native" not in self.clinical_data.columns:
-            self.clinical_data['race_american indian or alaska native'] =0
+
+        # if "gender_female" not in self.clinical_data.columns:
+        #     self.clinical_data["gender_female"] = 0
+        # if "gender_male" not in self.clinical_data.columns:
+        #             # 0 if gender_female is 1, 1 if gender_female is 0
+        #             self.clinical_data['gender_male'] = 1 - self.clinical_data['gender_female']
+        
+        # if "race_asian" not in self.clinical_data.columns:
+        #      self.clinical_data["race_asian"] = 0
+        # if "race_white" not in self.clinical_data.columns:
+        #      self.clinical_data['race_white'] = 0
+        # if "race_black or african american" not in self.clinical_data.columns:
+        #     self.clinical_data['race_black or african american'] =0
+        # if "race_not reported" not in self.clinical_data.columns:
+        #      self.clinical_data["race_not reported"] =0
+        # if "ethnicity_not reported" not in self.clinical_data.columns:
+        #      self.clinical_data["ethnicity_not reported"] =0
+        # if "race_american indian or alaska native" not in self.clinical_data.columns:
+        #     self.clinical_data['race_american indian or alaska native'] =0
        
-        if "ethnicity_hispanic or latino" not in self.clinical_data.columns:
-            self.clinical_data['ethnicity_hispanic or latino'] = 0
-        if "race_native hawaiian or other pacific islander" not in self.clinical_data.columns:
-            self.clinical_data['race_native hawaiian or other pacific islander'] = 0
+        # if "ethnicity_hispanic or latino" not in self.clinical_data.columns:
+        #     self.clinical_data['ethnicity_hispanic or latino'] = 0
+        # if "race_native hawaiian or other pacific islander" not in self.clinical_data.columns:
+        #     self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
         # assert that at least one of the race_ columns is 1
         assert self.clinical_data[['race_native hawaiian or other pacific islander','race_american indian or alaska native', 'race_asian', 'race_black or african american',
         'race_not reported', 'race_white']].sum(axis=1).min() == 1
 
+   
 
         # assert that at least one of the ethnicity_ columns is 1
         assert self.clinical_data[['ethnicity_hispanic or latino', 
         'ethnicity_not hispanic or latino', 'ethnicity_not reported']].sum(axis=1).min() == 1
+
+        # assert that at least one of the gender_ columns is 1
+        assert self.clinical_data[['gender_female', 'gender_male']].sum(axis=1).min() == 1
+                                                 
                                                  
 
         #assigned directly so that the order is preserved
@@ -268,6 +320,10 @@ class ExternalDataModule(pl.LightningDataModule):
         'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
         'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
         'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander']
+
+
+
+
 
     def log_data_info(self):
                 # Log the information of the dataset.
