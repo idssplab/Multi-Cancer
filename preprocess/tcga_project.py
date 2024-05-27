@@ -320,7 +320,7 @@ class TCGA_Project(object):
                 file_paths.append(extract_directory.joinpath(case_id, file_name))
 
             cases_file_paths[case_id] = file_paths
-        self.logger.info(f'Files successfully downloaded and organized for project {self.project_id}')
+        #self.logger.info(f'Files successfully downloaded and organized for project {self.project_id}')
         
 
 

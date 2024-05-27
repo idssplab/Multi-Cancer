@@ -106,22 +106,22 @@ class TCGA_Program_Dataset(BaseDataset):
         self.logger.info('Total {} patients, {} genomic features and {} clinical features'.format(
             len(self.patient_ids), len(self.genomic_ids), len(self.clinical_ids)
         ))
-        self.logger.info('Target Type {}'.format(self.target_type)) #Target Type overall_survival
+        #self.logger.info('Target Type {}'.format(self.target_type)) #Target Type overall_survival
         self.logger.info('Overall survival imbalance ratio {} %'.format(
             sum(self.overall_survivals) / len(self.overall_survivals) * 100
         ))
-        self.logger.info('AUPRC baseline (total set){} %'.format( self.overall_survivals.sum() / len(self.overall_survivals) * 100))
-        self.logger.info('Disease specific survival event rate {} %'.format(
-            sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
-        ))
-        self.logger.info('Disease specific survival imbalance ratio {} %'.format(
-            sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0]) / len(
-                self.disease_specific_survivals[self.disease_specific_survivals >= 0]
-            ) * 100
-        ))
-        self.logger.info('{} kinds of primary sites {}'.format(
-            len(np.unique(self.primary_sites)), ' / '.join(self.primary_site_ids)
-        ))
+        #self.logger.info('AUPRC baseline (total set){} %'.format( self.overall_survivals.sum() / len(self.overall_survivals) * 100))
+        # self.logger.info('Disease specific survival event rate {} %'.format(
+        #     sum(self.disease_specific_survivals >= 0) / len(self.disease_specific_survivals) * 100
+        # ))
+        # self.logger.info('Disease specific survival imbalance ratio {} %'.format(
+        #     sum(self.disease_specific_survivals[self.disease_specific_survivals >= 0]) / len(
+        #         self.disease_specific_survivals[self.disease_specific_survivals >= 0]
+        #     ) * 100
+        # ))
+        # self.logger.info('{} kinds of primary sites {}'.format(
+        #     len(np.unique(self.primary_sites)), ' / '.join(self.primary_site_ids)
+        # ))
 
         # Initialize BaseDataset instance
         self.base_dataset_init_kwargs = {
@@ -199,7 +199,7 @@ class TCGA_Program_Dataset(BaseDataset):
                 df_clinical[self.chosen_clinical_numerical_ids] -= clinical_mean
                 df_clinical[self.chosen_clinical_numerical_ids] /= clinical_std
 
-# one hot enconding for categorical data
+                # one hot enconding for categorical data
                 # gender should be encoded as gender_female and gender_male instead of 0 and 1
 
             if len(self.chosen_clinical_categorical_ids):
@@ -238,11 +238,21 @@ class TCGA_Program_Dataset(BaseDataset):
                     ).fillna(0)
 
             
+            
+            
+            df_overall_survival = tcga_project.overall_survival.T #transform according to time threshold
+            #df_vital_status = tcga_project.vital_status.T
+            df_vital_status = tcga_project.vital_status.T # maybe I have to adapt this too 
+            df_survival_time = tcga_project.survival_time.T  
 
-            df_vital_status = tcga_project.vital_status.T
-            df_overall_survival = tcga_project.overall_survival.T
+            df_overall_survival.to_csv("tcga_project_os.csv")
+            overall_survival_adapted = df_overall_survival.copy()
+            months_threshold = 30
+            overall_survival_adapted['overall_survival'] = (df_survival_time.values * 60 < months_threshold).astype(int)
+            overall_survival_adapted.to_csv("overall_survival_adapted")         
+
             df_disease_specific_survival = tcga_project.disease_specific_survival.T
-            df_survival_time = tcga_project.survival_time.T
+            
             df_primary_site = tcga_project.primary_site.T
             df_project_id = pd.DataFrame(
                 data=[self.project_ids.index(project_id)] * len(df_primary_site),

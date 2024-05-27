@@ -412,9 +412,10 @@ class TCGA_Case(object):
         '''
         Return the overall survival data.
         '''
+        self.logger.debug(f'Calculating overall survival for {self.case_id}...')
 
-        # TO-DO: try 3 years - REMEMBER TO CHANGE
-        year = 3
+        # TODO: try 3 years - REMEMBER TO CHANGE - change in os_threshold
+        year = 5
         return self._get_overall_survival_data(case_id=self.case_id, case_metadata=self.case_metadata, year=year)
 
     @property

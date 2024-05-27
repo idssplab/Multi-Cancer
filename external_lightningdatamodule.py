@@ -222,7 +222,7 @@ class ExternalDataModule(pl.LightningDataModule):
         # 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
         #change all columns to lower case
         self.clinical_data.columns = map(str.lower, self.clinical_data.columns)
-        print(self.clinical_data.columns)
+       
 
         self.clinical_data.rename({'race_0.0':'race_not reported', 
                                    'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 
