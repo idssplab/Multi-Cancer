@@ -76,6 +76,8 @@ class ExternalDataModule(pl.LightningDataModule):
         
         self.chosen_clinical_numerical_ids= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.chosen_clinical_categorical_ids = ['gender' ,'race', 'ethnicity']
+
+
         self.all_clinical_feature_ids = self.chosen_clinical_numerical_ids + self.chosen_clinical_categorical_ids
 
  
@@ -224,7 +226,8 @@ class ExternalDataModule(pl.LightningDataModule):
         #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
         self.preprocess_clinical_numeric_data()        
         # CATEGORICAL COLS
-        self.clinical_data = pd.get_dummies(self.clinical_data, columns=self.chosen_clinical_categorical_ids, dtype=float)  
+        self.clinical_data.columns = map(str.lower, self.clinical_data.columns)
+        self.clinical_data = pd.get_dummies(self.clinical_data, columns=["gender", 'ethnicity', 'race'], dtype=int)  
         # check that "gender_male" is still present 
         
         self.clinical_data = self.clinical_data.select_dtypes(exclude=['object'])
@@ -235,12 +238,10 @@ class ExternalDataModule(pl.LightningDataModule):
         # 'race_not reported', 'race_white', 'ethnicity_hispanic or latino', 
         # 'ethnicity_not hispanic or latino', 'ethnicity_not reported', 'race_native hawaiian or other pacific islander'
         #change all columns to lower case
-        self.clinical_data.columns = map(str.lower, self.clinical_data.columns)
+
        
 
-        self.clinical_data.rename({'race_0.0':'race_not reported', 
-                                   'race_1.0':'race_white', 'race_2.0':'race_asian', 'ethnicity_0.0': 'ethnicity_not reported', 
-                                   'ethnicity_1.0':'ethnicity_not hispanic or latino', 'ethnicity_2.0': 'ethnicity_hispanic or latino' }, inplace=True, axis=1)
+        
         
         clin_col_names = ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth', 
             'gender_female', 'gender_male', 'race_american indian or alaska native', 'race_asian', 'race_black or african american',
@@ -257,23 +258,21 @@ class ExternalDataModule(pl.LightningDataModule):
         'race_native hawaiian or other pacific islander'] #this is the order of the columns in the csv file
 
         self.clinical_features =  clin_col_names
-        #applied before concat        
-        # CATEGORICAL COLS #['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth'] 
-        for cancer_id in self.project_ids:     
-            self.clinical_data[cancer_id] = pd.get_dummies(self.clinical_data[cancer_id], columns=self.clinical_categorical_features, dtype=float)             
-            #change the column names to lower case
-            self.clinical_data[cancer_id].columns = map(str.lower, self.clinical_data[cancer_id].columns)          
-            self.clinical_data[cancer_id] = self.clinical_data[cancer_id].select_dtypes(exclude=['object'])   
-            
-            #if any of the columns is missing, add it with 0 values
-            for col in clin_col_names:
-                if col not in self.clinical_data[cancer_id].columns:
-                    #print('adding column {}'.format(col))
-                    self.clinical_data[cancer_id][col] = 0
+        
+           
 
-            self.clinical_data[cancer_id] = check_for_categorical_zeros(self.clinical_data[cancer_id])     
-            #reorder the columns           
-            self.clinical_data[cancer_id] = self.clinical_data[cancer_id][total_clin_col_names] 
+
+         
+        
+        #if any of the columns is missing, add it with 0 values
+        for col in clin_col_names:
+            if col not in self.clinical_data.columns:
+                #print('adding column {}'.format(col))
+                self.clinical_data[col] = 0
+
+        self.clinical_data = check_for_categorical_zeros(self.clinical_data)     
+        #reorder the columns           
+        self.clinical_data = self.clinical_data[total_clin_col_names] 
         
 
         # if "gender_female" not in self.clinical_data.columns:
