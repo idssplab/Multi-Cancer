@@ -245,11 +245,23 @@ class TCGA_Program_Dataset(BaseDataset):
             df_vital_status = tcga_project.vital_status.T # maybe I have to adapt this too 
             df_survival_time = tcga_project.survival_time.T  
 
-            df_overall_survival.to_csv("tcga_project_os.csv")
+            # remember survival time is in days, so 5 years is 1825 days
+            # so you have to multiply, according to the number of months you want to consider
+            # for example, 30 months is 30*30 = 900 days
+            
             overall_survival_adapted = df_overall_survival.copy()
-            months_threshold = 30
-            overall_survival_adapted['overall_survival'] = (df_survival_time.values * 60 < months_threshold).astype(int)
-            overall_survival_adapted.to_csv("overall_survival_adapted")         
+            months_threshold = 24
+            self.logger.info('Adapting overall survival to binary classification with threshold of {} months'.format(months_threshold))
+            overall_survival_adapted['overall_survival'] = (df_survival_time.values < months_threshold*30 ).astype(int)
+
+            # I want to check a CSV with overall_survival, survival_time, and the overall_survival_adapted together
+            # to check if the adaptation is correct
+            survival_df = pd.concat([df_overall_survival, df_survival_time, overall_survival_adapted], axis=1)
+            survival_df.columns = ['overall_survival', 'survival_time', 'overall_survival_adapted']
+            survival_df.to_csv('survival_df.csv')
+
+            df_overall_survival = overall_survival_adapted
+                
 
             df_disease_specific_survival = tcga_project.disease_specific_survival.T
             
