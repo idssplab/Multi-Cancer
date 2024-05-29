@@ -1,3 +1,2 @@
-from .metabric_dataset import METABRIC_Dataset
 from .tcga_program_dataset import TCGA_Program_Dataset
 from .tcga_project_dataset import TCGA_Project_Dataset
