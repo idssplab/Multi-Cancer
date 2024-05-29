@@ -250,7 +250,7 @@ class TCGA_Program_Dataset(BaseDataset):
             # for example, 30 months is 30*30 = 900 days
             
             overall_survival_adapted = df_overall_survival.copy()
-            months_threshold = 24
+            months_threshold = 60
             self.logger.info('Adapting overall survival to binary classification with threshold of {} months'.format(months_threshold))
             overall_survival_adapted['overall_survival'] = (df_survival_time.values < months_threshold*30 ).astype(int)
 
