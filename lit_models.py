@@ -94,7 +94,9 @@ class LitFullModel(pl.LightningModule):
         for i in torch.unique(project_id):
             mask = project_id == i
             roc = torchmetrics.functional.auroc(outputs[mask], labels[mask], 'binary')
-            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary')   
+            prc = torchmetrics.functional.average_precision(outputs[mask], labels[mask], 'binary') 
+            # Additional mask for C-index: do not compare data with survival time > 5 years.
+            mask = mask & (survival_time <= 365 * 5)  
             try:         
                 cindex = c_index(outputs[mask], survival_time[mask], vital_status[mask])
             except ZeroDivisionError: #sometimes vital status is all 0 or 1

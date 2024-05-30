@@ -56,7 +56,7 @@ external_datasets:
     num_workers: 4
     batch_size: 128
     project_id_task_descriptor: 1
-    os_threshold: 60
+    os_threshold: 36
     
 
 datasets_manager:

@@ -244,16 +244,18 @@ class TCGA_Program_Dataset(BaseDataset):
             #df_vital_status = tcga_project.vital_status.T
             df_vital_status = tcga_project.vital_status.T # maybe I have to adapt this too 
             df_survival_time = tcga_project.survival_time.T  
+            #transform survival time to months
+            df_survival_time = df_survival_time / 30
 
             # remember survival time is in days, so 5 years is 1825 days
             # so you have to multiply, according to the number of months you want to consider
             # for example, 30 months is 30*30 = 900 days
-            months_threshold = 60
+            months_threshold = 36
             if  months_threshold != 60:
                 overall_survival_adapted = df_overall_survival.copy()
                 
                 self.logger.info('Adapting overall survival to binary classification with threshold of {} months'.format(months_threshold))
-                overall_survival_adapted['overall_survival'] = (df_survival_time.values < months_threshold*30 ).astype(int)
+                overall_survival_adapted['overall_survival'] = (df_survival_time.values < months_threshold ).astype(int)
 
                 # I want to check a CSV with overall_survival, survival_time, and the overall_survival_adapted together
                 # to check if the adaptation is correct

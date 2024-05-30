@@ -12,7 +12,7 @@ from tqdm import tqdm
 from dataset import TCGA_Program_Dataset
 from datasets_manager import TCGA_Balanced_Datasets_Manager, TCGA_Datasets_Manager
 from lit_models import LitFullModel
-from model import Classifier, Feature_Extractor, Graph_And_Clinical_Feature_Extractor, Task_Classifier
+from model import Classifier, Feature_Extractor,Task_Classifier
 from utils import config_add_subdict_key, get_logger, override_n_genes, set_random_seed, setup_logging
 from external_lightningdatamodule import ExternalDataModule
 filterwarnings('ignore', r'.*Skipping val loop.*')  
