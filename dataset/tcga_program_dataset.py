@@ -250,7 +250,7 @@ class TCGA_Program_Dataset(BaseDataset):
             # remember survival time is in days, so 5 years is 1825 days
             # so you have to multiply, according to the number of months you want to consider
             # for example, 30 months is 30*30 = 900 days
-            months_threshold = 36
+            months_threshold = 60
             if  months_threshold != 60:
                 overall_survival_adapted = df_overall_survival.copy()
                 
