@@ -163,7 +163,7 @@ class ExternalDataModule(pl.LightningDataModule):
 
     def get_clinical_ids(self):
         self.clinical_features = self.clinical_data.columns[1:]
-        #print(self.clinical_features)
+   
     
     def get_genomic_ids(self):
         self.genomic_features = self.genomic_data.columns[1:]
@@ -273,31 +273,7 @@ class ExternalDataModule(pl.LightningDataModule):
         self.clinical_data = check_for_categorical_zeros(self.clinical_data)     
         #reorder the columns           
         self.clinical_data = self.clinical_data[total_clin_col_names] 
-        
-
-        # if "gender_female" not in self.clinical_data.columns:
-        #     self.clinical_data["gender_female"] = 0
-        # if "gender_male" not in self.clinical_data.columns:
-        #             # 0 if gender_female is 1, 1 if gender_female is 0
-        #             self.clinical_data['gender_male'] = 1 - self.clinical_data['gender_female']
-        
-        # if "race_asian" not in self.clinical_data.columns:
-        #      self.clinical_data["race_asian"] = 0
-        # if "race_white" not in self.clinical_data.columns:
-        #      self.clinical_data['race_white'] = 0
-        # if "race_black or african american" not in self.clinical_data.columns:
-        #     self.clinical_data['race_black or african american'] =0
-        # if "race_not reported" not in self.clinical_data.columns:
-        #      self.clinical_data["race_not reported"] =0
-        # if "ethnicity_not reported" not in self.clinical_data.columns:
-        #      self.clinical_data["ethnicity_not reported"] =0
-        # if "race_american indian or alaska native" not in self.clinical_data.columns:
-        #     self.clinical_data['race_american indian or alaska native'] =0
        
-        # if "ethnicity_hispanic or latino" not in self.clinical_data.columns:
-        #     self.clinical_data['ethnicity_hispanic or latino'] = 0
-        # if "race_native hawaiian or other pacific islander" not in self.clinical_data.columns:
-        #     self.clinical_data['race_native hawaiian or other pacific islander'] = 0
 
         # assert that at least one of the race_ columns is 1
         assert self.clinical_data[['race_native hawaiian or other pacific islander','race_american indian or alaska native', 'race_asian', 'race_black or african american',
@@ -405,7 +381,7 @@ class ExternalDataModule(pl.LightningDataModule):
     def DataLoader(self, data, shuffle=False, drop_last=False):
         
         dataset = CustomDataset(data=data, genomic_features=self.genomic_features, clinical_features=self.all_clinical_feature_ids)
-        print("clinical features", self.all_clinical_feature_ids)   
+          
         # Create a DataLoader from the TensorDataset
         sampler = RandomSampler( data_source=dataset, replacement=True, num_samples=len(dataset))   
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
