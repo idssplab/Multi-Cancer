@@ -48,9 +48,9 @@ datasets:
 external_datasets:
     project_id: [SCLC]
     chosen_features: 
-      gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
-      #gene_ids: ['SLC2A1', 'HIF1A', 'ALCAM', 'KDM1A', 'CADM1', 'OCIAD1', 'EPCAM', 'CDC73', 'PRKRA', 'DHX9', 'HNRNPU', 'PTK7', 'STAU1', 'SSR1', 'KRR1', 'SERBP1', 'PUM1', 'CLTC','ESR1', 'EFTUD2']
-    #   gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
+      #gene_ids: ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU'] #BRCA genes
+      gene_ids: ['SLC2A1', 'HIF1A', 'ALCAM', 'KDM1A', 'CADM1', 'OCIAD1', 'EPCAM', 'CDC73', 'PRKRA', 'DHX9', 'HNRNPU', 'PTK7', 'STAU1', 'SSR1', 'KRR1', 'SERBP1', 'PUM1', 'CLTC','ESR1', 'EFTUD2'] # Luad genes
+      #gene_ids: ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1'] # Coad genes
     data_dir: Data/sclc_ucologne_2015/
     cache_directory: Cache/SCLC/
     num_workers: 4

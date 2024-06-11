@@ -91,6 +91,11 @@ def main():
     )
     trainer.fit(lit_model, train_dataloaders=train)
 
+    #lit_model.load_state_dict(torch.load('model.pth'))
+
+    #save the model
+    #torch.save(lit_model.state_dict(), f"ext_model12.pth")
+
     # Test the final model.
     bootstrap_results = []
     for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):       
