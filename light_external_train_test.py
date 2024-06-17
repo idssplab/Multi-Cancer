@@ -53,8 +53,7 @@ def main():
     train = external_testing_data.train_dataloader()
     test = external_testing_data.test_dataloader()
 
-    # Cross validation, adapt the code for tensting on the external dataset batches
-    # still need to create he proper shuffling of the data
+    # Train the model with cross-validation.
 
     if config['cross_validation']:
         models, optimizers = create_models_and_optimizers(config)
@@ -67,9 +66,9 @@ def main():
             enable_checkpointing=False,
             
         )
-        #trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid']) #the validation is failing
+        
         trainer.fit(lit_model, train_dataloaders=train)
-        #trainer.test(lit_model, dataloaders=test, verbose=True)          
+             
 
 
     # Train the final model.
@@ -99,9 +98,7 @@ def create_models_and_optimizers(config: dict):
 
     # Setup models. Do not use getattr() for better IDE support.
     for model_name, kargs in config['models'].items():
-        if model_name == 'Graph_And_Clinical_Feature_Extractor':
-            models['feat_ext'] = Graph_And_Clinical_Feature_Extractor(**kargs)
-        elif model_name == 'Feature_Extractor':
+        if model_name == 'Feature_Extractor':
             models['feat_ext'] = Feature_Extractor(**kargs)
         elif model_name == 'Task_Classifier':
             models['clf'] = Task_Classifier(**kargs)

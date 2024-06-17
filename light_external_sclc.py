@@ -71,7 +71,7 @@ def main():
             )
             
             trainer.fit(lit_model, train_dataloaders=values['train'])
-            #trainer.test(lit_model, dataloaders=test, verbose=True)          
+            
                
             
         elif key == 'train':
