@@ -22,6 +22,7 @@ set_random_seed(SEED)
 
 
 def main():
+    """ This code trains and tests a model on a external dataset. (Non TCGA)"""
     # Select a config file.
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', type=str, help='Path to the config file.', required=True)
@@ -68,7 +69,7 @@ def main():
         )
         #trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid']) #the validation is failing
         trainer.fit(lit_model, train_dataloaders=train)
-        trainer.test(lit_model, dataloaders=test, verbose=True)          
+        #trainer.test(lit_model, dataloaders=test, verbose=True)          
 
 
     # Train the final model.
