@@ -11,6 +11,7 @@ import torch
 import shutil
 from torch.utils.data import DataLoader, TensorDataset, RandomSampler, WeightedRandomSampler
 from torch.utils.data.dataloader import default_collate
+from sklearn.model_selection import train_test_split
 
 
 # Create a TensorDataset from the tensors
@@ -360,17 +361,13 @@ class ExternalDataModule(pl.LightningDataModule):
             # Split the data into train, validation, and test sets
             if not only_test:
                 self.logger.info('Splitting data into train and test sets...')
-                train_data, test_data = [], []
-                for project_id in self.project_id:
-                    project_data = self.data
-                    project_data = project_data.sample(frac=1) #shuffle
-                    num_samples = len(project_data)
-                    num_train_samples = int(num_samples * 0.8)
-                    train_data.append(project_data.iloc[:num_train_samples])
-                    test_data.append(project_data.iloc[num_train_samples:])
-                self.train_data = pd.concat(train_data)
                 
-                self.test_data = pd.concat(test_data)
+                
+                
+                    
+                self.train_data, self.test_data = train_test_split(self.data, test_size=0.2)
+                    
+                
             else:
                 self.logger.info('Splitting data into test set...')
                 # (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch

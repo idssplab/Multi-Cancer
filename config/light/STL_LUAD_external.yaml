@@ -27,7 +27,7 @@ datasets:
   project_ids: [TCGA-LUAD]
   chosen_features:
     gene_ids:
-      TCGA-LUAD: ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
+      TCGA-LUAD: [ 'SLC2A1', 'HIF1A', 'ALCAM', 'KDM1A', 'CADM1', 'OCIAD1', 'EPCAM', 'CDC73', 'PRKRA', 'DHX9', 'HNRNPU', 'PTK7', 'STAU1', 'SSR1', 'KRR1', 'SERBP1', 'PUM1', 'CLTC','ESR1', 'EFTUD2']
     clinical_numerical_ids: ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
     clinical_categorical_ids:
       - gender
