@@ -109,9 +109,7 @@ def create_models_and_optimizers(config: dict):
 
     # Setup models. Do not use getattr() for better IDE support.
     for model_name, kargs in config['models'].items():
-        if model_name == 'Graph_And_Clinical_Feature_Extractor':
-            models['feat_ext'] = Graph_And_Clinical_Feature_Extractor(**kargs)
-        elif model_name == 'Feature_Extractor':
+        if model_name == 'Feature_Extractor':
             models['feat_ext'] = Feature_Extractor(**kargs)
         elif model_name == 'Task_Classifier':
             models['clf'] = Task_Classifier(**kargs)
