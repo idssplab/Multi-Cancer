@@ -116,18 +116,3 @@ def override_n_genes(config: dict):
             if 'n_genes' in config['models'][model_name]:
                 config['models'][model_name]['n_genes'] = n_genes
         return
-
-    genes = config['datasets.TCGA_BLC.args.chosen_features.gene_ids'] if 'TCGA_BLC' in config['datasets'] else None
-    try:
-        if genes is None:   # TCGA_Project_Dataset.
-            n_genes = config['models.Feature_Extractor.args.n_genes']
-        elif isinstance(genes, list):
-            n_genes = len(genes)
-        elif isinstance(genes, dict):
-            all_selected_genes = set()
-            for genes in genes.values():
-                all_selected_genes.update(genes)
-            n_genes = len(all_selected_genes)
-        config['models']['Feature_Extractor']['args']['n_genes'] = n_genes
-    except KeyError:        # No Feature_Extractor in config file or no n_genes in Feature_Extractor args.
-        pass

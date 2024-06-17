@@ -39,9 +39,7 @@ class Genomic_Feature_Extractor(BaseModel):
         
         # transform genomic to float32
         genomic = genomic.type(torch.float32)
-        
-       
-       
+
         return self.genomic_feature_extractor(genomic)
 
 
@@ -84,19 +82,16 @@ class Clinical_Feature_Extractor(BaseModel):
 
     def forward(self, clinical):
         batch_size = clinical.size(0)
-
         
         clinical = clinical.type(torch.float32)
-
 
         clinical_numerical, clinical_categorical = torch.split(
             clinical,
             [self.clinical_numerical_dim, self.clinical_categorical_dim],
             dim=1
-        )
-        
+        )        
 
-        if self.clinical_categorical_dim: #problem line
+        if self.clinical_categorical_dim: 
             clinical_categorical_embeddings = self.clinical_categorical_embedding(
                 clinical_categorical.nonzero(as_tuple=True)[1].view(
                     clinical_categorical.size(0), -1
@@ -166,6 +161,12 @@ class Feature_Extractor(BaseModel):
         else:
             genomic_features: torch.Tensor = self.genomic_feature_extractor(genomic)
             clinical_features: torch.Tensor = self.clinical_feature_extractor(clinical)
+
+        if len(genomic_features.shape) == 1:
+            genomic_features = genomic_features.unsqueeze(0)
+        if len(clinical_features.shape) == 1:
+            clinical_features = clinical_features.unsqueeze(0)
+
 
         return torch.hstack([genomic_features, clinical_features])
 
