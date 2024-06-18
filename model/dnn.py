@@ -16,7 +16,15 @@ class Genomic_Feature_Extractor(BaseModel):
             nn.BatchNorm1d(self.genomic_embedding_dim),
             nn.Linear(self.genomic_embedding_dim, self.genomic_embedding_dim),
             nn.BatchNorm1d(self.genomic_embedding_dim)
-        )
+        )  
+
+        # Define individual layers
+        self.linear1 = nn.Linear(self.genomic_dim, self.genomic_embedding_dim)
+        self.batchnorm1 = nn.BatchNorm1d(self.genomic_embedding_dim)
+        self.linear2 = nn.Linear(self.genomic_embedding_dim, self.genomic_embedding_dim)
+        self.batchnorm2 = nn.BatchNorm1d(self.genomic_embedding_dim)
+        self.linear3 = nn.Linear(self.genomic_embedding_dim, self.genomic_embedding_dim)
+        self.batchnorm3 = nn.BatchNorm1d(self.genomic_embedding_dim)
 
         self.initialization()
 
@@ -29,23 +37,46 @@ class Genomic_Feature_Extractor(BaseModel):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight)
-                nn.init.constant_(m.bias, 0)
-             # print type
+                nn.init.xavier_normal_(m.weight)  # print type
             #m.weight.type()
             #m.bias.type()
+                nn.init.constant_(m.bias, 0)
+           
 
     def forward(self, genomic):
+        #print("Genomic dim: ", self.genomic_dim)
         
         # transform genomic to float32
         genomic = genomic.type(torch.float32)
+        # Apply the first linear layer and batch normalization
+        x = self.linear1(genomic)
+        x = self.batchnorm1(x)
+        # Debugging print statement
+        #print(f"After first linear and batchnorm: {x.shape}")
+        
+        # Apply the second linear layer and batch normalization
+        x = self.linear2(x)
+        x = self.batchnorm2(x)
+        # Debugging print statement
+        #print(f"After second linear and batchnorm: {x.shape}")
+        
+        # Apply the third linear layer and batch normalization
+        x = self.linear3(x)
+        x = self.batchnorm3(x)
+        # Debugging print statement
+        #print(f"After third linear and batchnorm: {x.shape}")
+        
+        return x
+               
 
         return self.genomic_feature_extractor(genomic)
 
 
 class Clinical_Feature_Extractor(BaseModel):
     def __init__(self, clinical_numerical_dim, clinical_categorical_dim, clinical_embedding_dim=8):
-        super().__init__()
+        super().__init__()  # print type
+            #m.weight.type()
+            #m.bias.type()
         self.clinical_numerical_dim = clinical_numerical_dim
         self.clinical_categorical_dim = clinical_categorical_dim
         self.clinical_embedding_dim = clinical_embedding_dim

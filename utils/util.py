@@ -110,9 +110,13 @@ def override_n_genes(config: dict):
             for listed_genes in all_listed_genes.values():
                 genes_set.update(listed_genes)
             n_genes = len(genes_set)
+            #print(f'Number of genes non overlapping: {n_genes}')
         else:
             raise ValueError(f'Unknown type of chosen_features: {type(all_listed_genes)}')
+        
         for model_name in config['models'].keys():
             if 'n_genes' in config['models'][model_name]:
                 config['models'][model_name]['n_genes'] = n_genes
-        return
+        config['models']['Feature_Extractor']['genomic_dim'] = n_genes
+        #print('genomic dim', config['models']['Feature_Extractor']['genomic_dim'])
+        return config

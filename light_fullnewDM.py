@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    override_n_genes(config)       # For multi-task graph models.
+    config = override_n_genes(config)     
     config['csv_logger'] = True if 'csv_logger' in config and config['csv_logger'] else False                                             
     config_name = Path(args.config).stem
 
@@ -101,10 +101,10 @@ def cross_validation(logger, log_path, config: dict):
         )
 
         # Train the model
-        trainer.fit(lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+        trainer.fit(lit_model, train_dataloaders=train_loader)
         if config['csv_logger']:                
-                #validation_results.append(pd.read_csv(f'{log_path}/lightning_logs/version_{fold}/metrics.csv'))  
-                validation_results.append(trainer.test(lit_model, dataloaders=val_loader, verbose=True)[0]) 
+               
+                validation_results.append(trainer.test(lit_model, dataloaders=val_loader, verbose=False)[0]) 
 
 
     # Print validation results.        
@@ -112,7 +112,7 @@ def cross_validation(logger, log_path, config: dict):
     
     if validation_results:
         df_valid_results = pd.DataFrame.from_records(validation_results)
-        #df_valid_results = pd.concat(validation_results).groupby('epoch').last().drop(columns=['step'])
+     
         logger.info('\n' + results_to_markdown_table(df_valid_results, config, 'validation'))
 
     # Save CV model 
@@ -123,9 +123,9 @@ def cross_validation(logger, log_path, config: dict):
 
 def bootstrap_with_final_model(logger, log_path, config: dict):
 
-    # load the CV model instead
     
-    # Train the final model.
+    
+    
     models, optimizers = create_models_and_optimizers(config)
     lit_model = LitFullModel(models, optimizers, config)
     trainer = pl.Trainer(
@@ -141,7 +141,7 @@ def bootstrap_with_final_model(logger, log_path, config: dict):
     data.setup()
     train, test = data.train_dataloader(), data.test_dataloader()
     lit_model.load_from_checkpoint(f'{log_path}/cv_model.ckpt', models=models, optimizers=optimizers, config=config)
-    #trainer.fit(lit_model, train_dataloaders=train)
+    
 
     # Test the final model.
     logger.info(f'{"-" * 25} Bootstrap Test Results {"-" * 25}')
@@ -150,26 +150,10 @@ def bootstrap_with_final_model(logger, log_path, config: dict):
               
         test = data.test_dataloader()
         
-        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0])  # I want to see the individual values
+        bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0])  
 
     bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
     logger.info('\n' + results_to_markdown_table(bootstrap_results, config, 'test'))
-
-  
-    # bootstrap_results2 = []
-    # for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'): 
-    #     # TODO: Resample test set seems to be the problem 
-        
-    #     test = data.test_dataloader()
-        
-    #     bootstrap_results2.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0])  # I want to see the individual values
-
-    # bootstrap_results2 = pd.DataFrame.from_records(bootstrap_results2)
-    # logger.info('\n' + results_to_markdown_table(bootstrap_results2, config, 'test'))
-
-    
-    
-
 
 def create_models_and_optimizers(config: dict):
     models: dict[str, torch.nn.Module] = {}
@@ -196,7 +180,6 @@ def create_models_and_optimizers(config: dict):
         else:
             optimizers[key] = getattr(torch.optim, opt_name)(models[key].parameters(), **optim_dict[opt_name])
 
-    # Add models' structure to config for logging. TODO: Prettify.
     for model_name, torch_model in models.items():
         config[f'model.{model_name}'] = str(torch_model)
     return models, optimizers
