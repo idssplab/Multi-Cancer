@@ -1,7 +1,6 @@
 import pytorch_lightning as pl
 from torch.utils import data
 import pandas as pd
-from utils.api import get_filters_result_from_project, get_ppi_encoder, get_network_image, visualize_ppi
 from utils.logger import get_logger
 from utils.util import check_cache_files
 import numpy as np

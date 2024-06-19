@@ -9,7 +9,7 @@ from torch import from_numpy
 
 from base import BaseDataset
 from preprocess import TCGA_Project
-from utils.api import get_filters_result_from_project, get_ppi_encoder, get_network_image, visualize_ppi
+from utils.api import get_filters_result_from_project
 from utils.logger import get_logger
 from utils.util import check_cache_files
 
