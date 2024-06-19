@@ -22,8 +22,7 @@ class TCGA_Program_Dataset(BaseDataset):
     TCGA Program Dataset, used for multi-task
     '''
     def __init__(self, project_ids, data_directory, cache_directory, chosen_features=dict(), genomic_type='tpm',
-                 target_type='overall_survival', n_threads=1,
-                 graph_dataset=False, ppi_score_name='escore', ppi_score_threshold=0.0):
+                 target_type='overall_survival', n_threads=1):
         '''
         Initialize the TCGA Program Dataset with parameters.
         #for external DSs, I will probably need to create this directly from the data, not from the API
@@ -38,9 +37,7 @@ class TCGA_Program_Dataset(BaseDataset):
         :param genomic_type: The genomic type that uses in this project.
         :param target_type: Specify the wanted target type that you want to use.
         :param n_threads: The number of threads to user for concatenating genomic data.
-        :param graph_dataset: Whether to use graph or not.
-        :param ppi_score_name: The name of the ppi score.
-        :param ppi_score_threshold: The threshold of the ppi score.
+        
         '''
         if project_ids not in ['ALL']:
             self.project_ids = project_ids
@@ -94,10 +91,7 @@ class TCGA_Program_Dataset(BaseDataset):
         # Specify the target type
         self.target_type = target_type
 
-        # Specify the genomic type (use graph or not).
-        self.graph_dataset = graph_dataset
-        self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold
+       
 
         # Get data from TCGA_Project instance
         self._getdata()
@@ -276,8 +270,8 @@ class TCGA_Program_Dataset(BaseDataset):
             )
 
             # Rename the gene ids to numbers for original multi-task.
-            if not self.graph_dataset:
-                df_genomic.rename(columns=dict(zip(df_genomic.columns, range(len(df_genomic.columns)))), inplace=True)
+            
+            df_genomic.rename(columns=dict(zip(df_genomic.columns, range(len(df_genomic.columns)))), inplace=True)
 
             df_genomics.append(df_genomic)
             df_clinicals.append(df_clinical)
@@ -288,7 +282,6 @@ class TCGA_Program_Dataset(BaseDataset):
             df_primary_sites.append(df_primary_site)
             df_project_ids.append(df_project_id)
 
-        # NOTE: There's no missing values for the original multi-task. fillna() is only for graph dataset.
         df_genomics = pd.concat(df_genomics).fillna(0)
         df_clinicals = pd.concat(df_clinicals).fillna(0)
         df_vital_statuses = pd.concat(df_vital_statuses)
@@ -332,16 +325,8 @@ class TCGA_Program_Dataset(BaseDataset):
             axis=1
         )
 
-        # Transform to graph if graph_dataset is True.
-        if self.graph_dataset:
-            self._num_nodes = df_genomics.shape[-1]
-            self.logger.info(f'Number of nodes for the graph: {self._num_nodes}')
-            df_ppis = get_ppi_encoder(df_genomics.columns.to_list(), score=self.ppi_score, threshold=self.ppi_threshold)
-            #get_network_image(df_genomics.columns.to_list())
-            
-            self._genomics = self._process_genomic_as_graph(df_genomics, df_ppis)
-        else:
-            self._genomics = df_totals[df_genomics.columns].to_numpy(dtype=np.float32)
+        
+        self._genomics = df_totals[df_genomics.columns].to_numpy(dtype=np.float32)
 
         self._clinicals = df_totals[df_clinicals.columns].to_numpy(dtype=np.float32)
         self._vital_statuses = df_totals[df_vital_statuses.columns].squeeze().to_numpy(dtype=np.float32)
@@ -375,18 +360,7 @@ class TCGA_Program_Dataset(BaseDataset):
         self.logger.info('Saving train and test indices to {}'.format(self.cache_directory))
         return
 
-    def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
-        src = from_numpy(df_ppi['src'].to_numpy())
-        dst = from_numpy(df_ppi['dst'].to_numpy())
-        graphs: list[dgl.DGLGraph] = []
 
-        # Create a graph for each sample (patient).
-        for _, row in df_genomic.iterrows():
-            g = dgl.graph((src, dst), num_nodes=self._num_nodes)
-            g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
-            g = dgl.add_reverse_edges(g)
-            graphs.append(g)
-        return graphs
 
     def __getitem__(self, index):
         '''
@@ -406,9 +380,9 @@ class TCGA_Program_Dataset(BaseDataset):
         '''
         Return the genomic and clinical data.
         '''
-        if not self.graph_dataset:
-            return np.hstack((self._genomics, self._clinicals))
-        return np.hstack((np.expand_dims(self._genomics, 1), self._clinicals))
+        
+        return np.hstack((self._genomics, self._clinicals))
+        
 
     @property
     def genomics(self):
