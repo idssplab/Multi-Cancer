@@ -11,22 +11,6 @@ from utils.logger import get_logger
 from .sampler import BootstrapSubsetSampler, SubsetSampler, SubsetWeightedRandomSampler
 
 
-def gcollate(data_list):
-    # Unzip the data_list into two lists containing the two types of tuples
-    graph_data_list, target_data_list = zip(*data_list)
-    # Unzip each list of tuples into separate lists
-    graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-    targets, survival_times, vital_statuses = zip(*target_data_list)
-
-    batched_graphs = batch(graphs)
-    batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-    batch_indices = torch.tensor(indices)
-    batch_project_ids = torch.tensor(project_ids)
-    batch_targets = torch.tensor(targets)
-    batch_survival_times = torch.tensor(survival_times)
-    batch_vital_statuses = torch.tensor(vital_statuses)
-    return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
-            (batch_targets, batch_survival_times, batch_vital_statuses))
 
 
 class TCGA_Datasets_Manager(BaseDatasetsManager):
@@ -45,8 +29,7 @@ class TCGA_Datasets_Manager(BaseDatasetsManager):
             'config': config,
             'datasets': datasets
         }
-        if any([dataset.graph_dataset for dataset in datasets.values()]):
-            self.base_datasets_manager_init_kwargs['collate_fn'] = gcollate
+        
 
         self.logger = get_logger('preprocess.tcga_datasets_manager')
         self.logger.info('Initializing a TCGA Datasets Manager containing {} Datasets...'.format(len(datasets)))
@@ -174,8 +157,8 @@ class TCGA_Balanced_Datasets_Manager(BaseDatasetsManager):
             'config': config,
             'datasets': datasets
         }
-        if any([dataset.graph_dataset for dataset in datasets.values()]):
-            self.base_datasets_manager_init_kwargs['collate_fn'] = gcollate
+        
+    
 
         self.logger = get_logger('preprocess.tcga_balanced_datasets_manager')
         self.logger.info(f'Initializing a TCGA Balanced Datasets Manager containing {len(datasets)} Datasets...')

@@ -25,8 +25,7 @@ def main():
     ]
     config = ConfigParser.from_args(args, options)
 
-    # NOTE: Override n_genes in config file for multi-task graph neural network.
-    #override_n_genes(config)
+
 
     logging.info(f'Using Random Seed {SEED} for this experiment')
 
