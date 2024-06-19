@@ -51,8 +51,6 @@ datasets:
   test_split: 0
   num_workers: 12
   multi_task: true
-  graph_dataset: false
-  ppi_score_name: escore
-  ppi_score_threshold: 0.4
+
 
 
