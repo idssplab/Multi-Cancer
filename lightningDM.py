@@ -1,7 +1,6 @@
 import pytorch_lightning as pl
 from torch.utils import data
 import pandas as pd
-from utils.api import get_filters_result_from_project, get_ppi_encoder, get_network_image, visualize_ppi
 from utils.logger import get_logger
 from utils.util import check_cache_files
 import numpy as np
@@ -24,39 +23,8 @@ warnings.filterwarnings("ignore", ".*sampler has shuffling enabled, it is strong
 SEED = 1126 # sklearn should use the np seed
 
 
-def gcollate(data_list):
-    # Unzip the data_list into two lists containing the two types of tuples
-    graph_data_list, target_data_list = zip(*data_list)
-    # Unzip each list of tuples into separate lists
-    graphs, clinicals, indices, project_ids = zip(*graph_data_list)
-    targets, survival_times, vital_statuses = zip(*target_data_list)
 
-    batched_graphs = batch(graphs)
-    batch_clinicals = torch.stack([torch.from_numpy(clinical) for clinical in clinicals])
-    batch_indices = torch.tensor(indices)
-    batch_project_ids = torch.tensor(project_ids)
-    batch_targets = torch.tensor(targets)
-    batch_survival_times = torch.tensor(survival_times)
-    batch_vital_statuses = torch.tensor(vital_statuses)
-    return ((batched_graphs, batch_clinicals, batch_indices, batch_project_ids),
-            (batch_targets, batch_survival_times, batch_vital_statuses))
 
-def normalize_dataset_combat(pre_normalized_rna):
-    num_samples = pre_normalized_rna.shape[0]
-       
-    # TODO: merge Ian's code for batch correction
-    # only works with more than 1 batch
-    # temporary fix: associating half of the samples to one batch and the other half to the other batch
-    batch1_n = int(np.ceil(num_samples * 0.5))
-    batch2_n = int(num_samples - batch1_n)   
-    batches = ["Batch 1"] * batch1_n  + ["Batch 2"] * batch2_n
-    # shuffle the batches numbers
-    batches = np.random.permutation(batches)
-    
-    # Apply ComBat
-    normalized_rna = pycombat_seq(pre_normalized_rna.T, batches)
-    normalized_rna = normalized_rna.T
-    return normalized_rna
 
 
 def check_for_categorical_zeros(df):
@@ -77,22 +45,13 @@ def check_for_categorical_zeros(df):
 
 # Create a TensorDataset from the tensors
 class CustomDataset(torch.utils.data.Dataset):
-    def __init__(self, data, genomic_features, clinical_features, graph_dataset =True, ppi_score_name='escore', ppi_score_threshold=0.0):
+    def __init__(self, data, genomic_features, clinical_features):
         self.data = data
         self.genomic_features = genomic_features
         self.clinical_features = clinical_features
         self.genomic_data = data[self.genomic_features]
-        self.graph_dataset = graph_dataset
-        self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold
 
-        if graph_dataset:
-            self._num_nodes = self.genomic_data.shape[-1]
-            print(f'Number of nodes for the graph: {self._num_nodes}')
-            df_ppis = get_ppi_encoder(self.genomic_data.columns.to_list(), score=self.ppi_score, threshold=self.ppi_threshold)
-            #get_network_image(df_genomics.columns.to_list())
-            
-            self.genomic_data = self._process_genomic_as_graph(self.genomic_data, df_ppis)
+       
 
 
     def __len__(self):
@@ -102,12 +61,7 @@ class CustomDataset(torch.utils.data.Dataset):
             
             # Assuming self.data is a pandas DataFrame
             row = self.data.iloc[index]
-            if self.graph_dataset:
-                
-                genomic= self.genomic_data[index]
-                
-            else:
-                genomic = row[self.genomic_features].values #sending ndarray            
+            genomic = row[self.genomic_features].values #sending ndarray            
             clinical = row[self.clinical_features].values           
             index = index#row['PATIENT_ID']
             project_id = row['project_id']
@@ -131,18 +85,7 @@ class CustomDataset(torch.utils.data.Dataset):
     def get_project_ids(self):
         return self.data['project_id'].values
     
-    def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
-        src = from_numpy(df_ppi['src'].to_numpy())
-        dst = from_numpy(df_ppi['dst'].to_numpy())
-        graphs: list[dgl.DGLGraph] = []
 
-        # Create a graph for each sample (patient).
-        for _, row in df_genomic.iterrows():
-            g = dgl.graph((src, dst), num_nodes=self._num_nodes)
-            g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
-            g = dgl.add_reverse_edges(g)
-            graphs.append(g)
-        return graphs
 
 
 
@@ -150,7 +93,7 @@ class CustomDataset(torch.utils.data.Dataset):
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, project_ids, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  
-                 graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0, project_id_task_descriptor=0, test_split=0.2, 
+                project_id_task_descriptor=0, test_split=0.2, 
                  n_threads=16, no_validation_set = False, multi_task = True, use_repeated_genes = True, batch_correction = False, os_threshold = 60):    
         #numworkers comes from cache directory
         super().__init__()
@@ -164,15 +107,11 @@ class DataModule(pl.LightningDataModule):
         self.n_threads = n_threads
         self.chosen_features = chosen_features
         self.chosen_genes = chosen_features['gene_ids']
-        self.graph_dataset = graph_dataset
-        self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold
         self.collate_fn = default_collate
         self.batch_correction = batch_correction
         self.os_threshold = os_threshold
 
-        if self.graph_dataset:
-            self.collate_fn = gcollate
+  
         
 
         self.clinical_numerical_features= ['age_at_diagnosis', 'year_of_diagnosis', 'year_of_birth']
@@ -182,7 +121,7 @@ class DataModule(pl.LightningDataModule):
         self.no_validation_set = no_validation_set
         self.use_old_TCGA_data = True # the old data comes with the already transformed to binary overall survival and disease specific survival
         self.number_of_sets = len(self.project_ids)
-        self.use_repeated_genes = False # used for the old multi-task dataset, non graph
+        self.use_repeated_genes = False # used for the old multi-task dataset
 
 
         if multi_task:
@@ -222,10 +161,8 @@ class DataModule(pl.LightningDataModule):
         self.pin_memory = True             
                
 
-        # Specify the genomic type (use graph or not).
-        self.graph_dataset = graph_dataset
-        self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold        
+
+  
 
         #self.get_chosen_features()
         self.prepare_data()        
@@ -500,7 +437,7 @@ class DataModule(pl.LightningDataModule):
     def DataLoader(self, data, weighted_sampler = False, replacement = False):
         shuffle=False
           
-        dataset = CustomDataset(data=data, genomic_features=self.all_genomic_features, clinical_features=self.clinical_features, graph_dataset=self.graph_dataset, ppi_score_name=self.ppi_score, ppi_score_threshold=self.ppi_threshold)   
+        dataset = CustomDataset(data=data, genomic_features=self.all_genomic_features, clinical_features=self.clinical_features)   
           
         
         if weighted_sampler: #using the targets

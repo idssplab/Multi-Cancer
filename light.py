@@ -59,8 +59,7 @@ def main():
                 enable_checkpointing=False,
             )
             trainer.fit(lit_model, train_dataloaders=values['train'], val_dataloaders=values['valid'])
-            ##trainer.test(lit_model, dataloaders=values['valid'], verbose=False) #verbose true prints the validation results for each fold
-            # print validation results
+
             
             valid_results.append(trainer.test(lit_model, dataloaders=values['valid'], verbose=False)[0])
                
@@ -106,9 +105,7 @@ def create_models_and_optimizers(config: dict):
 
     # Setup models. Do not use getattr() for better IDE support.
     for model_name, kargs in config['models'].items():
-        if model_name == 'Graph_And_Clinical_Feature_Extractor':
-            models['feat_ext'] = Graph_And_Clinical_Feature_Extractor(**kargs)
-        elif model_name == 'Feature_Extractor':
+        if model_name == 'Feature_Extractor':
             models['feat_ext'] = Feature_Extractor(**kargs)
         elif model_name == 'Task_Classifier':
             models['clf'] = Task_Classifier(**kargs)

@@ -59,7 +59,7 @@ def check_for_categorical_zeros(df):
 
 
 class ExternalDataModule(pl.LightningDataModule):
-    def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  graph_dataset= False, ppi_score_name='escore', ppi_score_threshold=0.0, project_id_task_descriptor=0,
+    def __init__(self, project_id, data_dir, cache_directory, batch_size, num_workers, chosen_features=dict(),  project_id_task_descriptor=0,
                  os_threshold =60):
         #numworkers comes from cache directory
         super().__init__()
@@ -111,10 +111,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
                
 
-        # Specify the genomic type (use graph or not).
-        self.graph_dataset = graph_dataset
-        self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold        
+
 
         self.get_chosen_features(chosen_features)
         self.prepare_data()        

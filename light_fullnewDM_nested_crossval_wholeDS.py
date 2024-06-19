@@ -12,7 +12,7 @@ from tqdm import tqdm
 from dataset import TCGA_Program_Dataset
 from datasets_manager import TCGA_Balanced_Datasets_Manager, TCGA_Datasets_Manager
 from lit_models import LitFullModel
-from model import Classifier, Feature_Extractor, Graph_And_Clinical_Feature_Extractor, Task_Classifier, Genomic_Separate_Feature_Extractor, Clinical_Separate_Feature_Extractor
+from model import Classifier, Feature_Extractor,  Task_Classifier
 from utils import config_add_subdict_key, get_logger, override_n_genes, set_random_seed, setup_logging
 from lightningDM import DataModule
 from sklearn.model_selection import KFold,  StratifiedKFold
@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    override_n_genes(config)       # For multi-task graph models.
+    override_n_genes(config)    
     config['csv_logger'] = True if 'csv_logger' in config and config['csv_logger'] else False                                             
     config_name = Path(args.config).stem
 
@@ -195,18 +195,14 @@ def create_models_and_optimizers(config: dict):
 
     # Setup models. Do not use getattr() for better IDE support.
     for model_name, kargs in config['models'].items():
-        if model_name == 'Graph_And_Clinical_Feature_Extractor':
-            models['feat_ext'] = Graph_And_Clinical_Feature_Extractor(**kargs)
-        elif model_name == 'Feature_Extractor':
+        
+        if model_name == 'Feature_Extractor':
             models['feat_ext'] = Feature_Extractor(**kargs)
         elif model_name == 'Task_Classifier':
             models['clf'] = Task_Classifier(**kargs)
         elif model_name == 'Classifier':
             models['clf'] = Classifier(**kargs)
-        elif model_name == 'Genomic_Separate_Feature_Extractor':
-            models['feat_ext'] = Genomic_Separate_Feature_Extractor(**kargs)
-        elif model_name == 'Clinical_Separate_Feature_Extractor':
-            models['feat_ext'] = Clinical_Separate_Feature_Extractor(**kargs)
+  
         
         else:
             raise ValueError(f'Unknown model type: {model_name}')

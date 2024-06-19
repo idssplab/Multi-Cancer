@@ -28,7 +28,7 @@ def main():
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    override_n_genes(config)                                                    # For multi-task graph models.
+    override_n_genes(config)                                                   
     config_name = Path(args.config).stem
 
     # Setup logging.
