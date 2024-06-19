@@ -3,6 +3,7 @@ pin_memory: true
 max_epochs: 50
 cross_validation: true
 bootstrap_repeats: 50
+new_dm : false
 
 optimizers:
   feat_ext:
