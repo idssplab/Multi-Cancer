@@ -9,7 +9,7 @@ from torch import from_numpy
 
 from preprocess import TCGA_Project
 from base import BaseDataset
-from utils.api import get_ppi_encoder, get_network_image, visualize_ppi
+
 from utils.logger import get_logger
 from utils.util import check_cache_files
 
@@ -19,8 +19,7 @@ class TCGA_Project_Dataset(BaseDataset):
     TCGA Project Dataset, used for single task learning.
     '''
     def __init__(self, project_id, data_directory, cache_directory, chosen_features=dict(), well_known_gene_ids=None,
-                 genomic_type='tpm', target_type='overall_survival', n_threads=1,
-                 graph_dataset=False, ppi_score_name='escore', ppi_score_threshold=0.0):
+                 genomic_type='tpm', target_type='overall_survival', n_threads=1):
         '''
         Initialize the TCGA Project Dataset with parameters.
 
@@ -35,9 +34,7 @@ class TCGA_Project_Dataset(BaseDataset):
         :param genomic_type: The genomic type that uses in this project.
         :param target_type: The target type that uses in the project.
         :param n_threads: The number of threads to user for concatenating genomic data.
-        :param graph_dataset: Whether to use graph or not.
-        :param ppi_score_name: The name of the ppi score.
-        :param ppi_score_threshold: The threshold of the ppi score.
+
         '''
         self.project_id = project_id
 
@@ -72,11 +69,6 @@ class TCGA_Project_Dataset(BaseDataset):
 
         # Specify the target type
         self.target_type = target_type
-
-        # Specify the genomic type (use graph or not).
-        self.graph_dataset = graph_dataset
-        self.ppi_score = ppi_score_name
-        self.ppi_threshold = ppi_score_threshold
 
         # Get data from TCGA_Project instance
         self._getdata()
@@ -193,16 +185,8 @@ class TCGA_Project_Dataset(BaseDataset):
         df_total = pd.concat([df_genomic, df_clinical, df_vital_status, df_overall_survival,
                               df_disease_specific_survival, df_survival_time], axis=1)
 
-        # Transform to graph if graph_dataset is True.
-        if self.graph_dataset:
-            self._num_nodes = df_genomic.shape[-1]
-            self.logger.info(f'Number of nodes in the graph: {self._num_nodes}')
-            df_ppi = get_ppi_encoder(df_genomic.columns.to_list(), score=self.ppi_score, threshold=self.ppi_threshold)
-            #get_network_image(df_genomic.columns.to_list())
-            
-            self._genomics = self._process_genomic_as_graph(df_genomic, df_ppi)
-        else:
-            self._genomics = df_total[df_genomic.columns].to_numpy(dtype=np.float32)
+
+        self._genomics = df_total[df_genomic.columns].to_numpy(dtype=np.float32)
 
         self._clinicals = df_total[df_clinical.columns].to_numpy()
         self._vital_statuses = df_total[df_vital_status.columns].squeeze().to_numpy()
@@ -216,18 +200,7 @@ class TCGA_Project_Dataset(BaseDataset):
         
         return
 
-    def _process_genomic_as_graph(self, df_genomic: pd.DataFrame, df_ppi: pd.DataFrame):
-        src = from_numpy(df_ppi['src'].to_numpy())
-        dst = from_numpy(df_ppi['dst'].to_numpy())
-        graphs: list[dgl.DGLGraph] = []
 
-        # Create a graph for each sample (patient).
-        for _, row in df_genomic.iterrows():
-            g = dgl.graph((src, dst), num_nodes=self._num_nodes)
-            g.ndata['feat'] = from_numpy(row.to_numpy()).view(-1, 1).float()
-            g = dgl.add_reverse_edges(g)
-            graphs.append(g)
-        return graphs
 
     def __getitem__(self, index):
         '''
@@ -247,9 +220,9 @@ class TCGA_Project_Dataset(BaseDataset):
         '''
         Return the genomic and clinical data.
         '''
-        if not self.graph_dataset:
-            return np.hstack((self._genomics, self._clinicals))
-        return np.hstack((np.expand_dims(self._genomics, 1), self._clinicals))
+        
+        return np.hstack((self._genomics, self._clinicals))
+   
 
     @property
     def genomics(self):

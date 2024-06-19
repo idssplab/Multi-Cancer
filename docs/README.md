@@ -25,7 +25,6 @@ PEP 8 should be followed as much as possible. The legacy code, however, is not f
 ((genomic, clinical, index, project_id), (target, survival_time, vital_statuse))
 ```
 
-Both of them support graph mode, by setting `graph_dataset=True`. The graph data will be stored in `self._genomics`, which means overriding the non-graph data.
 
 ### Models
 

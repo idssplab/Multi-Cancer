@@ -12,7 +12,7 @@ from tqdm import tqdm
 from dataset import TCGA_Program_Dataset
 from datasets_manager import TCGA_Balanced_Datasets_Manager, TCGA_Datasets_Manager
 from lit_models import LitFullModel
-from model import Classifier, Feature_Extractor, Graph_And_Clinical_Feature_Extractor, Task_Classifier
+from model import Classifier, Feature_Extractor,Task_Classifier
 from utils import config_add_subdict_key, get_logger, override_n_genes, set_random_seed, setup_logging
 import shap
 from captum.attr import IntegratedGradients
@@ -34,7 +34,7 @@ def main():
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    override_n_genes(config)                                                    # For multi-task graph models.
+    override_n_genes(config)                                                 
     config_name = Path(args.config).stem
 
     # Setup logging.
@@ -102,12 +102,6 @@ def main():
     batch = next(iter(train))
     (genomic, clinical, index, project_id), (overall_survival, survival_time, vital_status) = batch
 
-    # if project_id == 0:
-    #     feature_ids = ['ESR1', 'EFTUD2', 'HSPA8', 'STAU1', 'SHMT2', 'ACTB', 'GSK3B', 'YWHAB', 'UBXN6', 'PRKRA', 'BTRC', 'DDX23', 'SSR1', 'TUBA1C', 'SNIP1', 'SRSF5', 'ERBB2', 'MKI67', 'PGR', 'PLAU']
-    # elif project_id == 1:  
-    #     feature_ids= ['HNRNPU', 'STAU1', 'KDM1A', 'SERBP1', 'DHX9', 'EMC1', 'SSR1', 'PUM1', 'CLTC', 'PRKRA', 'KRR1', 'OCIAD1', 'CDC73', 'SLC2A1', 'HIF1A', 'PKM', 'CADM1', 'EPCAM', 'ALCAM', 'PTK7']
-    # else:
-    #     feature_ids= ['HNRNPL', 'HNRNPU', 'HNRNPA1', 'ZBTB2', 'SERBP1', 'RPL4', 'HNRNPK', 'HNRNPR', 'TFCP2', 'DHX9', 'RNF4', 'PUM1', 'ABCC1', 'CD44', 'ALCAM', 'ABCG2', 'ALDH1A1', 'ABCB1', 'EPCAM', 'PROM1']
     
          
 
@@ -152,13 +146,7 @@ def main():
 
 
 
-    # # Test the final model.
-    # bootstrap_results = []
-    # for _ in tqdm(range(config['bootstrap_repeats']), desc='Bootstrapping'):
-    #     bootstrap_results.append(trainer.test(lit_model, dataloaders=test, verbose=False)[0])
-    # bootstrap_results = pd.DataFrame.from_records(bootstrap_results)
-    # for key, value in bootstrap_results.describe().loc[['mean', 'std']].to_dict().items():
-    #     logger.info(f'| {key.ljust(10).upper()} | {value["mean"]:.5f} ± {value["std"]:.5f} |')
+   
 
 
 def create_models_and_optimizers(config: dict):
@@ -167,9 +155,8 @@ def create_models_and_optimizers(config: dict):
 
     # Setup models. Do not use getattr() for better IDE support.
     for model_name, kargs in config['models'].items():
-        if model_name == 'Graph_And_Clinical_Feature_Extractor':
-            models['feat_ext'] = Graph_And_Clinical_Feature_Extractor(**kargs)
-        elif model_name == 'Feature_Extractor':
+      
+        if model_name == 'Feature_Extractor':
             models['feat_ext'] = Feature_Extractor(**kargs)
         elif model_name == 'Task_Classifier':
             models['clf'] = Task_Classifier(**kargs)
