@@ -49,10 +49,6 @@ datasets:
   test_split: 0.2
   num_workers: 12
   multi_task: true
-  graph_dataset: false
-  ppi_score_name: escore
-  ppi_score_threshold: 0.4
   use_repeated_genes: True
-  batch_correction: False
   os_threshold: 60
 
