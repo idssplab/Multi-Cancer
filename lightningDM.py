@@ -254,7 +254,7 @@ class DataModule(pl.LightningDataModule):
                 print('New imbalance ratio for cancer {} is {}'.format(cancer_id, self.clinical_data[cancer_id]['overall_survival'].value_counts(normalize=True)[1]*100))
                 df['new_overall_survival'] = self.clinical_data[cancer_id]['overall_survival']  
               
-                df.to_csv('check_survival_time.csv', index=False)
+               
 
              
 
