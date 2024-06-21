@@ -209,7 +209,7 @@ class ExternalDataModule(pl.LightningDataModule):
             
             df['new_overall_survival'] = self.clinical_data['overall_survival']  
             
-            df.to_csv('check_survival_time.csv', index=False)
+            
         else:            
             
             
@@ -309,8 +309,7 @@ class ExternalDataModule(pl.LightningDataModule):
         
     def concat_data(self):
         # Concatenate the genomic and clinical data , having the genes and clinical features as columns   
-        #save clinical data to a csv file to check the nan values
-        self.clinical_data.to_csv('clin_data.csv', index=True)  
+        
                
         self.data = pd.merge(self.clinical_data, self.genomic_data , left_index=True, right_index=True)
         
@@ -326,10 +325,7 @@ class ExternalDataModule(pl.LightningDataModule):
             sum(self.data['overall_survival']) / len(self.data['overall_survival']) * 100
         ))
         
-        #check if there are any missing values
-        #self.logger.info('External DS - Total {} missing values'.format(self.data.isnull().sum().sum()))
-        # save the data to a csv file to check the nan values
-        #self.data.to_csv('format_ext_data.csv', index=True)
+       
 
     
 
